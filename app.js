@@ -90,10 +90,18 @@ function showStatus(message, kind = '', actions = []) {
     }
     box.append(choice);
   }
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'close';
+  close.setAttribute('aria-label', 'Dismiss');
+  close.textContent = '×';
+  close.addEventListener('click', hideStatus);
+  box.append(close);
   box.hidden = false;
 }
 
 function hideStatus() {
+  clearTimeout(statusTimer);
   $('status').hidden = true;
 }
 

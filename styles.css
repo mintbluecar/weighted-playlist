@@ -45,6 +45,8 @@ form.load{display:flex;gap:8px;width:100%;max-width:640px}
 .status.err{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
 .status .choice{display:flex;flex-wrap:wrap;gap:8px}
 .status .btn{height:36px;font-size:13.5px}
+.status .close{margin-left:auto;width:32px;height:32px;border:0;border-radius:8px;background:none;color:inherit;font-size:20px;line-height:1;opacity:.7}
+.status .close:hover{opacity:1;background:rgba(0,0,0,.06)}
 .storage-note{margin:0;text-align:center;font-size:13px;color:var(--ink-2)}
 
 /* layout */

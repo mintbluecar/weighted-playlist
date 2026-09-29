@@ -101,6 +101,18 @@ const scenarios = {
     return { pass: shownAfterAdd && hiddenLater && errorStays, shownAfterAdd, hiddenLater, errorStays };
   },
 
+  // Any message can be closed with its × button.
+  async 'dismiss-note'() {
+    await import('/app.js');
+    await wait(300);
+    submitLink('https://example.com/nope');
+    await wait(100);
+    const shown = !$('status').hidden;
+    $('status').querySelector('button[aria-label="Dismiss"]')?.click();
+    await wait(100);
+    return { pass: shown && $('status').hidden, shown, hidden: $('status').hidden };
+  },
+
   // A typed weight outside 1–99 must show the stored value, not what was typed.
   async 'typed-weight'() {
     await import('/app.js');
