@@ -209,7 +209,7 @@ form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)
 @keyframes knhop{0%,100%{transform:translateY(0) scale(1.06,.94)}45%{transform:translateY(-22%) scale(.95,1.06)}}
 .cr.floaty .kn{animation:knfloat 2.2s ease-in-out infinite}
 @keyframes knfloat{0%,100%{transform:translateY(-4%)}50%{transform:translateY(-14%)}}
-.yard.paused .kn,.yard.paused .kn .fr,.yard.paused .note-fx{animation-play-state:paused!important}
+.yard.paused .cr:not(.visitor) .kn,.yard.paused .cr:not(.visitor) .kn .fr,.yard.paused .note-fx{animation-play-state:paused!important}
 .cr.hatching .body{animation:hatch .7s cubic-bezier(.3,1.7,.5,1)}
 @keyframes hatch{from{transform:scale(.1) translateY(20px);opacity:0}to{transform:none;opacity:1}}
 .cr.poof .body{animation:poof .45s ease-in forwards}

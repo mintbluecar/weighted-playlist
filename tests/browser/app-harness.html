@@ -526,13 +526,18 @@ const scenarios = {
     await wait(800);
     const visitors = [...document.querySelectorAll('#yard .cr.visitor')];
     const untagged = visitors.every(v => !v.querySelector('.tag') && v.querySelector('.tip')?.textContent === 'Play a song to build your own crew');
+    const models = visitors.map(v => v.dataset.model);
+    const different = new Set(models).size === models.length;
+    const before = visitors.map(v => v.style.left);
+    await wait(4000);                          // nothing is playing yet: visitors still wander
+    const moved = visitors.some((v, i) => v.style.left !== before[i]);
     $('playBtn').click();
     await wait(300);
     const leaving = document.querySelectorAll('#yard .cr.visitor.leaving').length;
     const real = document.querySelectorAll('#yard .cr:not(.visitor)').length;
     return {
-      pass: visitors.length >= 4 && visitors.length <= 6 && untagged && leaving === visitors.length && real === 1,
-      visitors: visitors.length, untagged, leaving, real,
+      pass: visitors.length >= 4 && visitors.length <= 6 && untagged && different && moved && leaving === visitors.length && real === 1,
+      visitors: visitors.length, untagged, models, different, moved, leaving, real,
     };
   },
 

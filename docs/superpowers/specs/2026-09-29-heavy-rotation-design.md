@@ -233,7 +233,7 @@ A wide, low strip across the top of the page, above the player and the song list
 - Header: "Grow your crew by playing songs!"
 - **Collapsible:** the header is a toggle (▾) that hides or shows the pen. The choice is remembered (`hr:settings` → `penCollapsed`). The crew keeps hatching and counting while collapsed; creatures hatched while hidden are placed when the pen opens.
 - Empty state: "Press play and your songs show up here."
-- **Visitors:** while this session's crew is empty, 4–6 visitor creatures wander the pen. Each looks like the creature of a random song from the list, but has no song attached: no tag, smaller (22 px) and faded, with the tooltip "Play a song to build your own crew". They walk out when the first real creature hatches, and are never saved or counted. (The empty-state text is hidden while visitors are there.)
+- **Visitors:** while this session's crew is empty, 4–6 visitor creatures wander the pen. They are different creature types in random colours (no two alike), with no song attached: no tag, smaller (22 px) and faded, with the tooltip "Play a song to build your own crew". They walk out when the first real creature hatches, and are never saved or counted. Unlike the crew, visitors keep wandering while playback is paused. (The empty-state text is hidden while visitors are there.)
 - Each creature has a small tag with its song title.
 - **Hover** (or tap on phones, shown for about 2 seconds) shows the song title and "Played 1 time" / "Played X times".
 - No floating words: no "hatched", "+1" or "evolved" text.

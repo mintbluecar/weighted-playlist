@@ -1,6 +1,6 @@
 // Draws the pen: creatures hatch, wander, grow, shrink back, poof or walk out,
 // following the events from crew.js. Movement stops while playback is paused.
-import { creatureFor, PEN_LIMIT } from './crew.js';
+import { creatureFor, CREATURES, PEN_LIMIT } from './crew.js';
 
 const LANES = [4, 12, 20];              // three depths, so creatures overlap less
 const NOTES = ['♪', '♫', '♩', '♬'];
@@ -29,16 +29,17 @@ export class CrewView {
     requestAnimationFrame(now => this.#frame(now));
   }
 
-  // An empty pen gets 4–6 visitors that look like creatures of random songs from the list,
+  // An empty pen gets 4–6 visitors: different creature types in random colours,
   // with no song attached. They walk out when the first real creature hatches.
   showVisitors(songIds) {
     if (this.visitorsShown || !songIds.length || this.sprites.size) return;
     this.visitorsShown = true;
-    const count = 4 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < count; i++) {
-      const songId = songIds[Math.floor(Math.random() * songIds.length)];
-      this.#spawn(`visitor:${i}`, creatureFor(songId), true);
-    }
+    // Different creature types, in random colours.
+    const models = [...CREATURES].sort(() => Math.random() - 0.5).slice(0, 4 + Math.floor(Math.random() * 3));
+    models.forEach((model, i) => {
+      const variant = model.variants[Math.floor(Math.random() * model.variants.length)];
+      this.#spawn(`visitor:${i}`, { model, variant }, true);
+    });
     this.#renderHead();
   }
 
@@ -94,6 +95,7 @@ export class CrewView {
   #spawn(key, { model, variant }, visitor) {
     const el = document.createElement('div');
     el.className = ['cr', 'hatching', model.move === 'fly' && 'floaty', visitor && 'visitor'].filter(Boolean).join(' ');
+    el.dataset.model = model.name;
     const body = document.createElement('div');
     body.className = 'body';
     const shadow = document.createElement('span');
@@ -234,7 +236,7 @@ export class CrewView {
       if (sprite.x === null) sprite.x = Math.random() * Math.max(0, width - sprite.size);
       const isCurrent = id === this.current && !sprite.leaving;
       sprite.el.classList.toggle('current', isCurrent);
-      if (!this.paused && !this.reducedMotion) {
+      if ((!this.paused || sprite.visitor) && !this.reducedMotion) { // visitors aren't crew: they wander even when paused
         if (!sprite.leaving) {
           sprite.t -= dt;
           if (sprite.t <= 0) {
