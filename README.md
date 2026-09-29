@@ -2,6 +2,16 @@
 
 Plays a YouTube playlist with weights, so your favourite songs come around more often. Design: [`docs/superpowers/specs/2026-09-29-heavy-rotation-design.md`](docs/superpowers/specs/2026-09-29-heavy-rotation-design.md).
 
+## Run it
+
+From this folder:
+
+    python3 -m http.server 8000
+
+Then open http://localhost:8000. On a phone on the same Wi-Fi, open `http://<this computer's local IP>:8000` (on a Mac: System Settings → Wi-Fi → Details → IP address).
+
+Tests: `node --test`
+
 ## Assets
 
 Creature art is from Kenney's **New Platformer Pack** (CC0): https://kenney.nl/assets/new-platformer-pack
