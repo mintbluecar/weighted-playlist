@@ -5,10 +5,13 @@ import { creatureFor, PEN_LIMIT } from './crew.js';
 const LANES = [4, 12, 20];              // three depths, so creatures overlap less
 const NOTES = ['♪', '♫', '♩', '♬'];
 const WALK_SPEED = 26;                  // px per second for a 36 px creature; bigger ones walk slower
-const SCALE = 1.15;                     // Kenney frames have some empty space around the creature
+const SCALE = 1.15;
+const VISITOR_SIZE = 22;                // visitors are a little smaller than a first-play creature (26)
+const VISITOR_TIP = 'Play a song to build your own crew';                     // Kenney frames have some empty space around the creature
 
 export class CrewView {
-  constructor({ yard, empty, count, crew, titleFor, assetBase = 'assets/kenney/' }) {
+  // Sprite files are found relative to this script, so any page that uses the crew can show them.
+  constructor({ yard, empty, count, crew, titleFor, assetBase = new URL('./assets/kenney/', import.meta.url).href }) {
     this.yard = yard;
     this.empty = empty;
     this.count = count;
@@ -26,9 +29,25 @@ export class CrewView {
     requestAnimationFrame(now => this.#frame(now));
   }
 
+  // An empty pen gets 4–6 visitors that look like creatures of random songs from the list,
+  // with no song attached. They walk out when the first real creature hatches.
+  showVisitors(songIds) {
+    if (this.visitorsShown || !songIds.length || this.sprites.size) return;
+    this.visitorsShown = true;
+    const count = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const songId = songIds[Math.floor(Math.random() * songIds.length)];
+      this.#spawn(`visitor:${i}`, creatureFor(songId), true);
+    }
+    this.#renderHead();
+  }
+
   apply(events) {
     for (const { type, id } of events) {
-      if (type === 'hatch') this.#hatch(id);
+      if (type === 'hatch') {
+        this.#dismissVisitors();
+        this.#hatch(id);
+      }
       else if (type === 'evolve') this.#evolve(id);
       else if (type === 'count') this.#updateTip(id);
       else if (type === 'shrink') this.#shrink(id);
@@ -49,6 +68,7 @@ export class CrewView {
 
   refreshTitles() {
     for (const [id, sprite] of this.sprites) {
+      if (sprite.visitor) continue;
       const title = this.titleFor(id);
       if (sprite.tag.textContent !== title) {
         sprite.tag.textContent = title;
@@ -59,9 +79,21 @@ export class CrewView {
 
   #hatch(id) {
     this.sprites.get(id)?.el.remove(); // a creature still walking out gets replaced
-    const { model, variant } = creatureFor(id);
+    this.#spawn(id, creatureFor(id), false);
+  }
+
+  #dismissVisitors() {
+    for (const [key, sprite] of this.sprites) {
+      if (!sprite.visitor || sprite.leaving) continue;
+      sprite.el.classList.add('leaving');
+      this.#leave(key);
+    }
+  }
+
+  // Build a creature: a real one (song tag, play-count tooltip) or a visitor (no tag, fixed tooltip).
+  #spawn(key, { model, variant }, visitor) {
     const el = document.createElement('div');
-    el.className = model.move === 'fly' ? 'cr hatching floaty' : 'cr hatching';
+    el.className = ['cr', 'hatching', model.move === 'fly' && 'floaty', visitor && 'visitor'].filter(Boolean).join(' ');
     const body = document.createElement('div');
     body.className = 'body';
     const shadow = document.createElement('span');
@@ -81,21 +113,27 @@ export class CrewView {
     }
     flip.append(frames);
     body.append(shadow, flip);
-    const tag = document.createElement('div');
-    tag.className = 'tag';
-    tag.textContent = this.titleFor(id);
     const tip = document.createElement('div');
     tip.className = 'tip';
     tip.setAttribute('role', 'tooltip');
-    el.append(body, tag, tip);
+    let tag = null;
+    if (visitor) {
+      tip.textContent = VISITOR_TIP;
+      el.append(body, tip);
+    } else {
+      tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = this.titleFor(key);
+      el.append(body, tag, tip);
+    }
     const lane = Math.floor(Math.random() * LANES.length);
     el.style.bottom = `${LANES[lane]}px`;
     el.style.zIndex = String(10 - lane);
     this.yard.append(el);
 
-    const size = this.crew.sizeOf(id) * SCALE;
-    this.sprites.set(id, {
-      el, body, flip, tag, tip, size,
+    const size = (visitor ? VISITOR_SIZE : this.crew.sizeOf(key)) * SCALE;
+    this.sprites.set(key, {
+      el, body, flip, tag, tip, size, visitor,
       x: this.yard.clientWidth ? Math.random() * Math.max(0, this.yard.clientWidth - size) : null, // placed when the pen is visible
       dir: Math.random() < 0.5 ? -1 : 1,
       mode: 'idle',
@@ -104,8 +142,8 @@ export class CrewView {
       face: model.face,
       noteAt: 0,
     });
-    this.#size(id);
-    this.#updateTip(id);
+    this.#size(key);
+    this.#updateTip(key);
     setTimeout(() => el.classList.remove('hatching'), 700);
   }
 
@@ -160,14 +198,14 @@ export class CrewView {
   #size(id) {
     const sprite = this.sprites.get(id);
     if (!sprite) return;
-    sprite.size = this.crew.sizeOf(id) * SCALE;
+    sprite.size = (sprite.visitor ? VISITOR_SIZE : this.crew.sizeOf(id)) * SCALE;
     sprite.body.style.width = `${sprite.size}px`;
     sprite.body.style.height = `${sprite.size}px`;
   }
 
   #updateTip(id) {
     const sprite = this.sprites.get(id);
-    if (!sprite) return;
+    if (!sprite || sprite.visitor) return;
     const n = this.crew.plays(id);
     const title = document.createElement('b');
     title.textContent = this.titleFor(id);

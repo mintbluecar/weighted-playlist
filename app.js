@@ -264,6 +264,7 @@ function rebuildSongs() {
   save();
   render();
   if (newIds.length) loadTitles(newIds);
+  if (!crew.members.size) crewView.showVisitors([...state.songs.keys()]); // an empty pen gets visitors
 }
 
 // Look up titles that aren't remembered, or were looked up more than a day ago.

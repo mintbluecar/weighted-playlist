@@ -193,6 +193,7 @@ form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)
 .cr.current .flip{filter:drop-shadow(2px 0 0 var(--accent)) drop-shadow(-2px 0 0 var(--accent)) drop-shadow(0 2px 0 var(--accent)) drop-shadow(0 -2px 0 var(--accent)) drop-shadow(0 0 8px var(--accent))}
 .cr .shadow{position:absolute;left:15%;right:15%;bottom:-2px;height:5px;border-radius:50%;background:rgba(0,0,0,.14)}
 .cr.floaty .shadow{opacity:.6;transform:scaleX(.7)}
+.cr.visitor .body{opacity:.55}
 .kn{position:relative;width:100%;height:100%;transform-origin:50% 100%}
 .kn .fr{position:absolute;inset:0;width:100%;height:100%;opacity:0;user-select:none;-webkit-user-drag:none}
 .kn .f-idle{opacity:1}
