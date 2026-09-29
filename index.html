@@ -51,7 +51,7 @@
             <div class="endmode">
               <div class="seg" id="endMode" role="group" aria-label="When the loop ends">
                 <button type="button" data-mode="shuffle" aria-pressed="true" aria-label="New shuffle" data-tip="New shuffle each loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
-                <button type="button" data-mode="stop" aria-pressed="false" aria-label="Stop" data-tip="Stop after this loop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+                <button type="button" class="tip-end" data-mode="stop" aria-pressed="false" aria-label="Stop" data-tip="Stop after this loop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
               </div>
             </div>
           </div>
@@ -68,7 +68,7 @@
       <div class="lhead songs-head">
         <div class="lhead-top">
           <div class="lhead-name"><h2 id="plName">No playlist loaded</h2><div class="owner" id="plOwner"></div></div>
-          <button type="button" class="manage-link" id="manageBtn" aria-label="Manage playlists" aria-haspopup="dialog" data-tip="Manage playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2.6M12 18.4V21M3 12h2.6M18.4 12H21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9"/></svg></button>
+          <button type="button" class="manage-link tip-end tip-below" id="manageBtn" aria-label="Manage playlists" aria-haspopup="dialog" data-tip="Manage playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2.6M12 18.4V21M3 12h2.6M18.4 12H21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9"/></svg></button>
         </div>
         <div class="lhead-cols"><span id="listMeta"></span><span class="wlabel">Weight <button type="button" class="info" id="infoBtn" aria-label="What weight means" aria-describedby="infoTip" aria-expanded="false">i</button><span class="infotip" id="infoTip" role="tooltip">The heavier the weight, the more often a song comes around.</span></span></div>
       </div>

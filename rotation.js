@@ -143,10 +143,6 @@ export class Queue {
     return items;
   }
 
-  upcoming(n) {
-    return this.queueItems(n).filter(i => i.type !== 'stop').map(i => (i.type === 'song' ? i.id : null));
-  }
-
   // Swap a queued song with its neighbour (dir -1 up, +1 down), within its own loop only.
   move(where, index, dir) {
     const loop = where === 'this' ? this.loop : this.#peekNextLoop();

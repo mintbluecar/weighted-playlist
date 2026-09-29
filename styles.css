@@ -7,6 +7,7 @@
   --danger:#c62828; --danger-soft:#fde4e4;
   --bar:#0e7c7b; --bar-track:#e3e8ec; --floor:#e2e9e4;
   --shadow:0 1px 2px rgba(22,32,42,.06),0 8px 24px rgba(22,32,42,.06);
+  --z-tip:50;
   --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
   --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -31,6 +32,17 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* tooltips: any element with data-tip shows it above itself on hover or keyboard focus.
+   .tip-end lines it up with the element's right edge, .tip-below opens it underneath,
+   and .is-tip shows it (used for a short while after a tap on touch screens). */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font:500 12px/1.3 var(--body);padding:6px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:var(--z-tip)}
+[data-tip].tip-end::after{left:auto;right:0;transform:translateY(4px)}
+[data-tip].tip-below::after{bottom:auto;top:calc(100% + 6px);transform:translateY(-4px)}
+[data-tip]:hover::after,[data-tip]:focus-visible::after,[data-tip].is-tip::after{opacity:1;transform:translate(-50%,0)}
+[data-tip].tip-end:hover::after,[data-tip].tip-end:focus-visible::after,[data-tip].tip-end.is-tip::after{transform:none}
+@media (hover:none){[data-tip]:hover::after{opacity:0}[data-tip].is-tip::after{opacity:1}}
+
 /* header and link bar */
 header.top{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding-block:10px 2px}
 .intro{display:grid;gap:6px;justify-items:center}
@@ -48,7 +60,7 @@ form.load{display:flex;gap:8px;width:100%}
 .status .choice{display:flex;flex-wrap:wrap;gap:8px}
 .status .btn{height:36px;font-size:13.5px}
 .status .close{margin-left:auto;width:32px;height:32px;border:0;border-radius:8px;background:none;color:inherit;font-size:20px;line-height:1;opacity:.7}
-.status .close:hover{opacity:1;background:rgba(0,0,0,.06)}
+.status .close:hover{opacity:1;background:var(--surface-2)}
 .storage-note{margin:0;text-align:center;font-size:13px;color:var(--ink-2)}
 
 /* layout */
@@ -74,11 +86,6 @@ form.load{display:flex;gap:8px;width:100%}
 .seg button{position:relative;border:0;background:none;width:42px;height:40px;display:grid;place-items:center;color:var(--ink-2);border-radius:9px}
 .seg button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.seg button::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.3;padding:6px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:10}
-.seg button:last-child::after{left:auto;right:0;transform:translate(0,4px)}
-.seg button:hover::after,.seg button:focus-visible::after,.seg button.tip::after{opacity:1;transform:translate(-50%,0)}
-.seg button:last-child:hover::after,.seg button:last-child:focus-visible::after,.seg button:last-child.tip::after{transform:translate(0,0)}
-@media (hover:none){.seg button:hover::after{opacity:0}.seg button.tip::after{opacity:1}}
 
 /* song list */
 .list{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
@@ -96,10 +103,6 @@ form.load{display:flex;gap:8px;width:100%}
 .manage-link{position:relative;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;width:40px;height:40px;margin:-6px -8px 0 0;border-radius:8px;color:var(--ink-3)}
 .manage-link svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .manage-link:hover,.manage-link:focus-visible{color:var(--accent);background:var(--accent-soft)}
-.manage-link::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);right:0;transform:translateY(-4px);background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;padding:5px 8px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:10}
-.manage-link:hover::after,.manage-link:focus-visible::after{opacity:1;transform:none}
-@media (hover:none){.manage-link:hover::after{opacity:0}}
-.lhead .meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .wlabel{position:relative;display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--ink)}
 .info{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink-3);background:none;color:var(--ink-2);font:italic 600 11px/1 Georgia,serif;display:grid;place-items:center;padding:0}
 .info:hover,.info[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
@@ -267,9 +270,6 @@ ol.sources{list-style:none;margin:0;padding:0}
 .btn.danger:hover,.btn.danger:focus-visible{background:var(--danger-soft)}
 .btn.danger.solid{background:var(--danger);color:var(--surface)}
 .btn.danger.solid:hover,.btn.danger.solid:focus-visible{filter:brightness(1.08)}
-.btn[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.3;padding:6px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:10}
-.btn[data-tip]:hover::after,.btn[data-tip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
-@media (hover:none){.btn[data-tip]::after{display:none}}
 .confirm{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;font-size:14px}
 
 @media (max-width:760px){

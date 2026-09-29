@@ -592,6 +592,16 @@ const scenarios = {
     return { pass: loadingShown && lookups === 1 && $('listLoading').hidden, loadingShown, lookups };
   },
 
+  // Tooltips sit on their own button: every element with a tooltip is positioned, so its tooltip anchors to it.
+  async 'tooltips-anchored'() {
+    await import('/app.js');
+    await wait(800);
+    $('manageBtn').click();
+    const withTips = [...document.querySelectorAll('[data-tip]')];
+    const unanchored = withTips.filter(el => getComputedStyle(el).position === 'static').map(el => el.id || el.textContent.trim());
+    return { pass: withTips.length >= 4 && unanchored.length === 0, count: withTips.length, unanchored };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

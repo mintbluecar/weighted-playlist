@@ -65,16 +65,16 @@ test('stop mode returns null at the end, and start begins a new loop', () => {
   assert.equal(q.loopNumber, 2);
 });
 
-test('upcoming marks the new loop, and the preview is the loop that actually plays', () => {
+test('the queue marks the new loop, and the preview is the loop that actually plays', () => {
   const q = queueWith([['a', 2], ['b', 1], ['c', 1]]);
   q.start();
   q.next();
   q.next();
-  const preview = q.upcoming(4);
+  const preview = q.queueItems(4);
   assert.equal(preview.length, 5);
-  assert.equal(preview[1], null);
-  const nextLoopStart = preview.slice(2);
-  assert.deepEqual([q.next(), q.next(), q.next(), q.next()], [preview[0], ...nextLoopStart]);
+  assert.equal(preview[1].type, 'divider');
+  const songs = preview.filter(item => item.type === 'song').map(item => item.id);
+  assert.deepEqual([q.next(), q.next(), q.next(), q.next()], songs);
 });
 
 test('previous goes back, and next carries on without skipping', () => {
@@ -118,7 +118,7 @@ test('an empty queue returns null', () => {
   const q = queueWith([]);
   assert.equal(q.start(), null);
   assert.equal(q.next(), null);
-  assert.deepEqual(q.upcoming(4), []);
+  assert.deepEqual(q.queueItems(4), []);
 });
 
 test('a weight change mid-loop keeps what already played and rebuilds only the rest', () => {

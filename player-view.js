@@ -8,10 +8,10 @@ export function setupEndModeButtons(groupEl, onChange) {
     button.addEventListener('click', () => {
       onChange(button.dataset.mode);
       // Touch screens have no hover, so a tap shows the tooltip for a moment.
-      groupEl.querySelectorAll('button.tip').forEach(b => b.classList.remove('tip'));
-      button.classList.add('tip');
+      groupEl.querySelectorAll('button.is-tip').forEach(b => b.classList.remove('is-tip'));
+      button.classList.add('is-tip');
       clearTimeout(tipTimer);
-      tipTimer = setTimeout(() => button.classList.remove('tip'), 1500);
+      tipTimer = setTimeout(() => button.classList.remove('is-tip'), 1500);
     });
   }
 }
