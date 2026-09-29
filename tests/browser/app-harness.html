@@ -528,9 +528,10 @@ const scenarios = {
     const untagged = visitors.every(v => !v.querySelector('.tag') && v.querySelector('.tip')?.textContent === 'Play a song to build your own crew');
     const models = visitors.map(v => v.dataset.model);
     const different = new Set(models).size === models.length;
-    const before = visitors.map(v => v.style.left);
-    await wait(4000);                          // nothing is playing yet: visitors still wander
-    const moved = visitors.some((v, i) => v.style.left !== before[i]);
+    // Nothing is playing yet, so the pen is paused; visitors keep animating anyway. (Headless Chrome draws
+    // no animation frames while the harness waits, so walking distance can't be measured here.)
+    const moved = $('yard').classList.contains('paused')
+      && visitors.every(v => getComputedStyle(v.querySelector('.kn')).animationPlayState === 'running');
     $('playBtn').click();
     await wait(300);
     const leaving = document.querySelectorAll('#yard .cr.visitor.leaving').length;
