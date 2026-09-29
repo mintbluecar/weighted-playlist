@@ -6,6 +6,8 @@ import { createStore, MINE } from './storage.js';
 import { loadYouTubeApi, createPlayer, fetchInfo, fetchVideoInfos, playlistUrl, videoUrl, STATE } from './youtube.js';
 import { setupSongList, renderSongs, flashRow } from './songs-view.js';
 import { setupEndModeButtons, renderPlayer } from './player-view.js';
+import { Crew } from './crew.js';
+import { CrewView } from './crew-view.js';
 
 const $ = id => document.getElementById(id);
 const MY_ROTATION = 'My rotation';
@@ -32,6 +34,19 @@ let queue = newQueue();
 let player = null;
 let resortTimer = null;
 let renderQueued = false;
+
+// The crew is session only. Plays count after 30 seconds of actual playback.
+const crew = new Crew();
+const crewView = new CrewView({
+  yard: $('yard'), empty: $('yardEmpty'), count: $('penCount'), crew, titleFor: id => titleOf(id),
+});
+let lastTick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  const seconds = (now - lastTick) / 1000;
+  lastTick = now;
+  if (state.playerState === STATE.PLAYING) crewView.apply(crew.tick(seconds));
+}, 250);
 
 const playerEls = {
   nowTitle: $('nowTitle'), nowChan: $('nowChan'), loopPos: $('loopPos'), playBtn: $('playBtn'),
@@ -132,6 +147,7 @@ function setSource(sourceId, playlistIds) {
   for (const id of playlistIds) if (!state.songs.has(id)) addSong(id, saved.weights[id] ?? 1, false);
   for (const id of saved.extras) if (!state.songs.has(id)) addSong(id, saved.weights[id] ?? 1, true);
   settings.lastSource = { type: sourceId === MINE ? 'mine' : 'playlist', id: sourceId };
+  crewView.apply(crew.endPlay());
   if (player) player.stop();
   state.playStarted = false;
   queue = newQueue();
@@ -208,6 +224,7 @@ async function addVideo(videoId) {
 
 function playSong(id) {
   if (!id) return;
+  crewView.apply(crew.endPlay());
   state.playStarted = false;
   player.play(id);
   render();
@@ -217,6 +234,7 @@ function next() {
   const id = queue.next();
   if (id) playSong(id);
   else {
+    crewView.apply(crew.endPlay());
     player.stop();
     render();
   }
@@ -245,8 +263,14 @@ function playNow(id) {
 
 function onStateChange(s) {
   state.playerState = s;
-  if (s === STATE.PLAYING) state.playStarted = true;
-  if (s === STATE.ENDED) next();
+  if (s === STATE.PLAYING && !state.playStarted && queue.current) {
+    state.playStarted = true;
+    crewView.apply(crew.startPlay(queue.current));
+  }
+  if (s === STATE.ENDED) {
+    crewView.apply(crew.endPlay());
+    next();
+  }
   render();
 }
 
@@ -306,6 +330,9 @@ function render() {
     endMode: queue.endMode,
     showEmpty: !current,
   });
+  crewView.setCurrent(queue.current);
+  crewView.setPaused(state.playerState !== STATE.PLAYING);
+  crewView.refreshTitles();
 }
 
 // ---------- events ----------
