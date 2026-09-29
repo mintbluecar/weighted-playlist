@@ -189,7 +189,7 @@ A box under the player (**The crew**) where small creatures walk around, one per
 
 - Holds up to **20** creatures. A new creature can briefly be the 21st; when its play counts, the smallest creature (fewest plays, then least recently played; never the current song's) walks out of the pen.
 - When the pen is full, the header reads **"Your top 20 songs"**. Otherwise it shows only the title.
-- Empty state: "Play a song for 30 seconds and its creature hatches here." (Wording to revisit: the creature now appears as soon as the song starts.)
+- Empty state: "Press play and your songs show up here."
 - Each creature has a small tag with its song title.
 - **Hover** (or tap on phones, shown for about 2 seconds) shows the song title and "Played 1 time" / "Played X times".
 - No floating words: no "hatched", "+1" or "evolved" text.
