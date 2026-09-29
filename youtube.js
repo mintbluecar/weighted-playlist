@@ -80,6 +80,7 @@ export function createPlayer(YT, elementId, { onStateChange, onError } = {}) {
 function wrapPlayer(yt, lastCuedAt) {
   return {
     play: videoId => yt.loadVideoById(videoId),
+    cue: videoId => yt.cueVideoById(videoId), // shows the thumbnail, paused, until resume()
     pause: () => yt.pauseVideo(),
     resume: () => yt.playVideo(),
     stop: () => yt.stopVideo(),

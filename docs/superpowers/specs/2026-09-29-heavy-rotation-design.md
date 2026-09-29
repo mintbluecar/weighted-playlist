@@ -140,6 +140,7 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 
 ### Playback
 
+- After a playlist loads (or the first video is added), the first song of the loop waits in the player, paused (`cueVideoById`), so Play starts it. The video box says "Paste a playlist link above, then press play." only when nothing is loaded, and "Press play to start." when a list is loaded but nothing is waiting.
 - **Play/pause**, **next**, **previous** (goes back through what actually played), **play now** (tap a song's title).
 - Advances automatically when a song ends (player state `ENDED`).
 - **Up next** shows the next four songs, with a "new loop" marker where a loop ends.

@@ -11,7 +11,7 @@ const realFetch = window.fetch.bind(window);
 // ---- fake YouTube IFrame API ----
 const playlists = { [A]: [A1, A2], [B]: [B1] };
 const cueDelay = { [A]: 20, [B]: 20 };
-const calls = { loadVideoById: [] };
+const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0 };
 window.YT = {
   Player: class {
     constructor(id, opts) {
@@ -30,8 +30,9 @@ window.YT = {
     }
     getPlaylist() { return playlists[this.list] ?? null; }
     loadVideoById(id) { calls.loadVideoById.push(id); setTimeout(() => this.emit(1), 0); }
+    cueVideoById(id) { calls.cueVideoById.push(id); setTimeout(() => this.emit(5), 0); }
     pauseVideo() { this.emit(2); }
-    playVideo() { this.emit(1); }
+    playVideo() { calls.playVideo++; this.emit(1); }
     stopVideo() { this.emit(-1); }
   },
 };
@@ -76,11 +77,13 @@ const scenarios = {
     await wait(300);
     $('playBtn').click();
     await wait(300);
-    const playing = calls.loadVideoById.at(-1);
+    const playing = calls.cueVideoById.at(-1);   // Play starts the song that was waiting in the player
+    const loadsBefore = calls.loadVideoById.length;
     submitLink('https://www.youtube.com/playlist?list=PLXXXX');
     await wait(12000);                // listPlaylist gives up after 10 s
     return {
-      pass: calls.loadVideoById.length === 2 && calls.loadVideoById[1] === playing && $('status').classList.contains('err'),
+      pass: calls.loadVideoById.length === loadsBefore + 1 && calls.loadVideoById.at(-1) === playing
+        && $('status').classList.contains('err'),
       loads: calls.loadVideoById, status: $('status').textContent,
     };
   },
@@ -99,6 +102,22 @@ const scenarios = {
     await wait(5000);
     const errorStays = !$('status').hidden && $('status').classList.contains('err');
     return { pass: shownAfterAdd && hiddenLater && errorStays, shownAfterAdd, hiddenLater, errorStays };
+  },
+
+  // After a playlist loads, one of its songs waits in the player, paused; Play starts that song.
+  async 'cued-after-load'() {
+    await import('/app.js');
+    await wait(300);
+    const cued = calls.cueVideoById.at(-1);
+    const titleBefore = $('nowTitle').textContent;
+    const overlayHidden = $('videoEmpty').hidden;
+    $('playBtn').click();
+    await wait(100);
+    return {
+      pass: [A1, A2].includes(cued) && titleBefore === `Title ${cued}` && overlayHidden
+        && calls.loadVideoById.length === 0 && calls.playVideo === 1,
+      cued, titleBefore, overlayHidden, loads: calls.loadVideoById, plays: calls.playVideo,
+    };
   },
 
   // Any message can be closed with its × button.

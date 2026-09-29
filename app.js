@@ -167,6 +167,7 @@ function setSource(sourceId, playlistIds) {
   state.playStarted = false;
   queue = newQueue();
   updateCounts();
+  cueFirstSong();
   resort();
   save();
   render();
@@ -230,6 +231,7 @@ async function addVideo(videoId) {
   if (state.songs.has(videoId)) return showStatus('That song is already in the list.');
   addSong(videoId, 1, true);
   updateCounts();
+  if (!queue.current) cueFirstSong();
   resort();
   save();
   render();
@@ -245,6 +247,12 @@ async function addVideo(videoId) {
 }
 
 // ---------- playback ----------
+
+// Wait paused on the first song of the loop (a weighted random pick), so Play starts it.
+function cueFirstSong() {
+  const id = player && queue.start();
+  if (id) player.cue(id);
+}
 
 function playSong(id) {
   if (!id) return;
@@ -366,6 +374,7 @@ function render() {
     upcoming: state.songs.size ? queue.upcoming(4).map(id => (id === null ? null : titleOf(id))) : [],
     endMode: queue.endMode,
     showEmpty: !current,
+    emptyText: state.songs.size ? 'Press play to start.' : 'Paste a playlist link above, then press play.',
   });
   crewView.setCurrent(queue.current);
   crewView.setPaused(state.playerState !== STATE.PLAYING);

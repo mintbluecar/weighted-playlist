@@ -23,6 +23,7 @@ export function renderPlayer(els, view) {
   els.playBtn.setAttribute('aria-label', view.playing ? 'Pause' : 'Play');
   els.playIcon.setAttribute('d', view.playing ? ICON_PAUSE : ICON_PLAY);
   els.videoEmpty.hidden = !view.showEmpty;
+  els.videoEmpty.textContent = view.emptyText;
 
   const label = document.createElement('span');
   label.className = 'lbl';
