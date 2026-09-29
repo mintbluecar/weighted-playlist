@@ -25,6 +25,8 @@ It is for the owner's own listening, in a desktop or phone browser. Every play i
 - Play, pause, next, previous, play-now, up-next preview.
 - Weights and extra videos saved in the browser, per playlist.
 - Responsive layout, light and dark themes.
+- The crew: a pen of walking creatures, one per song, that hatch and grow as songs are played (session only).
+- Footer with the owner's credit and the Kenney art credit.
 
 **Out of scope (v1)**
 - Section loops (A–B), per-song repeat counts, sleep timer.
@@ -57,11 +59,14 @@ weighted-playlist/
   rotation.js     builds each loop: plays → spaced-out order
   storage.js      saves and loads settings in the browser
   youtube.js      wraps YouTube's IFrame Player API and oEmbed title lookups
-  tests/          automated tests for links.js, weights.js and rotation.js
+  crew.js         crew rules: play counting, hatch/grow/revert, pen limit (no DOM)
+  crew-view.js    draws the pen and moves the creatures
+  assets/kenney/  creature SVGs from Kenney's New Platformer Pack, plus its License.txt
+  tests/          automated tests for links.js, weights.js, rotation.js and crew.js
   docs/           this spec and the mockup
 ```
 
-`links.js`, `weights.js` and `rotation.js` are pure logic with no browser or YouTube dependencies, so they can be tested with Node's built-in test runner (`node --test`). `youtube.js` is the only file that talks to YouTube, so a later PiP or export feature touches it and `app.js` only.
+`links.js`, `weights.js`, `rotation.js` and `crew.js` are pure logic with no browser or YouTube dependencies, so they can be tested with Node's built-in test runner (`node --test`). `youtube.js` is the only file that talks to YouTube, so a later PiP or export feature touches it and `app.js` only.
 
 ## Links
 
@@ -155,7 +160,47 @@ The mockup is the reference for layout and copy.
 - **Sorting:** by weight, highest first, then by title. Re-sorts about a second after the last weight change so rows don't jump while tapping; the moved row briefly highlights.
 - **Themes:** light and dark, following the system setting.
 
-The mockup's "Mockup" banner, "Try a sample link" buttons and 8-second simulated songs are mockup-only and are not part of the app.
+The mockup's "Mockup" banner, "Try a sample link" buttons, 8-second simulated songs, 3-second hatch time and "fast-forward 12 songs" button are mockup-only and are not part of the app.
+
+- **Footer:** reuses the `4benies-tracker` footer style (small, centred, muted, top border): "made with love by twitter user @mintbluetoyota." (linked to https://x.com/mintbluetoyota) and "creatures by Kenney." (linked to https://kenney.nl).
+
+## The crew
+
+A box under the player (**The crew**) where small creatures walk around, one per song, in the spirit of the VS Code pets extension. It is for fun only and resets on refresh.
+
+### Art
+
+- Kenney's **New Platformer Pack** (CC0; `License.txt` in the pack says "Creative Commons Zero, CC0"), downloaded by the owner. Stored in `assets/kenney/`.
+- **10 creature models:** astronaut, slime, spike slime, block slime, snail, ladybug, mouse, worm, frog, bee.
+- **Frames per model:** idle, walk A, walk B, and rest. The frog's walk frames are idle and jump; the astronaut's rest frame is its crouch.
+- **Colour variants:** the astronaut uses the pack's 5 colours; the other models use 5 hue shifts (0°, 70°, 150°, 220°, 300°).
+- **Which creature a song gets** is worked out from its video ID (a hash picks the model and variant), so a song always gets the same creature.
+- Credit in the footer: "creatures by Kenney" (not required by CC0, included anyway).
+
+### How plays count
+
+- **When a song starts playing:** if its creature isn't in the pen, it hatches. If it is, it evolves: a white flash, a sparkle burst, and it grows one size step.
+- **The play counts after 30 seconds of actual playback** (time paused doesn't count). Each play of a song counts at most once.
+- **Skipping before 30 seconds reverts the play:** a newly hatched creature poofs away; an existing creature shrinks back to its previous size.
+- **Size:** 26 px at 1 play, +7 px per play, up to 96 px. Bigger creatures walk a little slower.
+- **Points are session only.** Nothing is saved; a refresh starts with an empty pen.
+
+### The pen
+
+- Holds up to **20** creatures. A new creature can briefly be the 21st; when its play counts, the smallest creature (fewest plays, then least recently played; never the current song's) walks out of the pen.
+- When the pen is full, the header reads **"Your top 20 songs"**. Otherwise it shows only the title.
+- Empty state: "Play a song for 30 seconds and its creature hatches here." (Wording to revisit: the creature now appears as soon as the song starts.)
+- Each creature has a small tag with its song title.
+- **Hover** (or tap on phones, shown for about 2 seconds) shows the song title and "Played 1 time" / "Played X times".
+- No floating words: no "hatched", "+1" or "evolved" text.
+
+### Movement
+
+- Creatures wander left and right, stop, and turn, at three depths so they overlap less. Walking alternates the two walk frames with a slight bob; the frog hops; the bee flaps and floats.
+- **Current song:** its creature walks like the others, with an accent-coloured outline and musical notes (♪ ♫) floating up from it. No dancing.
+- **Paused:** every creature freezes in place (movement, frame animation and notes) and carries on when playback resumes.
+- Respects "reduce motion": creatures stay still.
+- On phones, the pen sits under the pinned player and scrolls with the page.
 
 ## Storage
 
@@ -196,6 +241,7 @@ The mockup's "Mockup" banner, "Try a sample link" buttons and 8-second simulated
 **Automated (`node --test`)**
 - `links.js`: every link shape in the table above, host variants, missing scheme, invalid input.
 - `weights.js`: plays per loop including divisor reduction; frequency text for each rule.
+- `crew.js`: a play shows immediately but counts only after 30 s of playback; paused time doesn't count; skipping before 30 s reverts (new creature removed, existing one back to its previous size); pen limit and eviction order; the current song's creature is never evicted; the same video ID always maps to the same model and variant.
 - `rotation.js`: each song appears exactly its number of plays; no back-to-back repeats where avoidable (checked over many random loops); no repeat across the join between loops; same-order mode reuses the loop.
 
 **Manual, in a real browser**
@@ -205,3 +251,4 @@ The mockup's "Mockup" banner, "Try a sample link" buttons and 8-second simulated
 - Weights survive a page reload.
 - The layout and controls work on a phone over Wi-Fi.
 - Whether a Mix (`RD…`) link loads.
+- The crew: hatch, grow, revert on early skip, freeze on pause, outline and notes on the current song.
