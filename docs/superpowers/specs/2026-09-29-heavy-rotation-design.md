@@ -110,6 +110,7 @@ The list is a **rotation**: one or more YouTube playlists plus single videos add
 - Pasting a playlist link in the top bar **adds** its songs to the rotation at their saved weight (or 1), skipping songs already in the list. Nothing is interrupted: the playing song keeps playing and the rest of the loop is rebuilt. Note: "Added <playlist title> (N new songs)."
 - List header title: no playlists → "My rotation"; one → its title (with "by <owner>"); two → "A + B"; three or more → "A + N more". When single videos were added here, the owner line adds "+ K added here".
 - A **⚙ settings icon** beside the header opens the manage page; tooltip **"Manage playlists"**.
+- **Loading state:** while the playlists are being read (including waiting for YouTube's player at startup, and after a Sync), the song list shows a spinner and "Loading your playlists from YouTube…". Remembered songs are still shown underneath.
 - Wording that makes the one-way rule clear:
   - Bottom add box placeholder: "Add a song to this list (your YouTube playlist won't change)".
   - Song ⋮ menu: **Remove from this list**; the note reads "Removed <title>. Still on YouTube." with Undo.

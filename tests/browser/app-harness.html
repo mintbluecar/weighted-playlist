@@ -509,6 +509,17 @@ const scenarios = {
     };
   },
 
+  // While playlists are being read, the song list shows a loading line; it goes away when they're in.
+  async 'loading-state'() {
+    cueDelay[A] = 1000;
+    await import('/app.js');
+    await wait(300);
+    const box = $('listLoading');
+    const shownWhileReading = !!box && !box.hidden;
+    await wait(1500);
+    return { pass: shownWhileReading && box.hidden && document.querySelectorAll('.song').length === 2, shownWhileReading, hiddenAfter: box?.hidden };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

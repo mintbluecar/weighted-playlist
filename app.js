@@ -288,10 +288,19 @@ function failedMessage(listIds) {
   return `${which} be loaded. It may be private or deleted. Its songs are hidden until it loads again.`;
 }
 
+// "Loading your playlists" shows while any read of the rotation's playlists is running.
+let loadingReads = 0;
+function setLoading(delta) {
+  loadingReads = Math.max(0, loadingReads + delta);
+  $('listLoading').hidden = loadingReads === 0;
+}
+
 // Read the rotation's playlists (all of them, or only ones not read yet) and rebuild the list.
 async function loadRotation({ refresh = true } = {}) {
   const toRead = rotation.sources.filter(id => refresh || (!state.sourceSongs.has(id) && !state.failedSources.has(id)));
+  if (toRead.length) setLoading(+1);
   const results = await Promise.all(toRead.map(async id => [id, await loadSource(id)]));
+  if (toRead.length) setLoading(-1);
   rebuildSongs();
   const failed = results.filter(([, ok]) => !ok).map(([id]) => id);
   if (failed.length) showStatus(failedMessage(failed), 'err');
@@ -597,6 +606,9 @@ if (!store.available) $('storageNote').hidden = false;
 // Build the list from the saved rotation straight away, so nothing saved before the playlists
 // are read (like adding a video) can overwrite the saved added and removed songs.
 rebuildSongs();
+// Waiting for YouTube's player counts as loading when there are playlists to read.
+const waitingForPlayer = rotation.sources.length > 0;
+if (waitingForPlayer) setLoading(+1);
 boot();
 
 async function boot() {
@@ -607,8 +619,10 @@ async function boot() {
       createPlayer(YT, 'ytReader'),
     ]);
   } catch {
+    if (waitingForPlayer) setLoading(-1);
     showStatus("The YouTube player couldn't load. Check your connection or ad blocker.", 'err');
     return;
   }
-  loadRotation();
+  loadRotation(); // shows its own loading line while it reads
+  if (waitingForPlayer) setLoading(-1);
 }

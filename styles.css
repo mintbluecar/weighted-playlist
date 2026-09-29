@@ -100,6 +100,9 @@ form.load{display:flex;gap:8px;width:100%}
 .infotip{position:absolute;right:0;top:calc(100% + 8px);width:max-content;max-width:220px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:500;line-height:1.35;padding:7px 10px;border-radius:7px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s;z-index:10}
 .info:hover+.infotip,.info:focus-visible+.infotip,.info[aria-expanded="true"]+.infotip{opacity:1;transform:none}
 ol.songs{list-style:none;margin:0;padding:0}
+.list-loading{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13.5px;color:var(--ink-2);background:var(--surface-2);border-bottom:1px solid var(--line)}
+.spinner{flex:none;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .song{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
 .song:last-child{border-bottom:0}
 .song.current{background:var(--accent-soft)}
