@@ -1,0 +1,423 @@
+<title>Heavy Rotation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --line:#d9dfe5;
+  --ink:#16202a; --ink-2:#4f5d6b; --ink-3:#7c8995;
+  --accent:#0e7c7b; --accent-ink:#ffffff; --accent-soft:#d5efee;
+  --warn:#b4540f; --warn-soft:#fbe8d8;
+  --bar:#0e7c7b; --bar-track:#e3e8ec;
+  --shadow:0 1px 2px rgba(22,32,42,.06),0 8px 24px rgba(22,32,42,.06);
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1519; --surface:#172027; --surface-2:#1d2830; --line:#2a3741;
+    --ink:#e7edf1; --ink-2:#a7b4be; --ink-3:#7a8893;
+    --accent:#3cc1bd; --accent-ink:#06201f; --accent-soft:#163b3b;
+    --warn:#f0a063; --warn-soft:#3a2617;
+    --bar:#3cc1bd; --bar-track:#24313a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1519; --surface:#172027; --surface-2:#1d2830; --line:#2a3741;
+  --ink:#e7edf1; --ink-2:#a7b4be; --ink-3:#7a8893;
+  --accent:#3cc1bd; --accent-ink:#06201f; --accent-soft:#163b3b;
+  --warn:#f0a063; --warn-soft:#3a2617;
+  --bar:#3cc1bd; --bar-track:#24313a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);padding-inline:16px;padding-block:14px 40px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:14px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.note{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--ink-2);background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;padding:8px 12px}
+.note b{color:var(--ink);font-weight:600}
+
+header.top{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding-block:10px 2px}
+.intro{display:grid;gap:6px;justify-items:center}
+.brand{font-family:var(--display);font-size:clamp(30px,6vw,40px);line-height:1.05;letter-spacing:-.02em;margin:0}
+.brand .heavy{font-weight:800;color:var(--accent)}
+.brand .light{font-weight:300}
+.tagline{margin:0;font-size:14px;color:var(--ink-2);max-width:46ch;text-wrap:pretty}
+form.load{display:flex;gap:8px;width:100%;max-width:640px}
+.field{flex:1;min-width:0;height:42px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-size:14px}
+.btn{height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.status{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.status.ok{border-color:var(--accent);background:var(--accent-soft)}
+.status.err{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.status code{font-family:var(--mono);font-size:12.5px}
+.status .muted{color:var(--ink-2)}
+.status .choice{display:flex;flex-wrap:wrap;gap:8px}
+.status .btn{height:36px;font-size:13.5px}
+.try{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-3);margin-top:-6px}
+.try button{border:1px dashed var(--line);background:none;border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--ink-2)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+.player{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.video{aspect-ratio:16/9;max-width:100%;position:relative;display:grid;place-items:center;color:#fff;overflow:hidden;transition:background .6s}
+.video .vt{font-family:var(--display);font-weight:700;font-size:clamp(20px,3.4vw,30px);text-align:center;padding:0 20px;text-wrap:balance;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+.video .vs{position:absolute;left:12px;top:10px;font-size:12px;opacity:.85;letter-spacing:.04em;text-transform:uppercase}
+.video .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.25)}
+.video .prog i{display:block;height:100%;width:0;background:#fff}
+.pbody{padding:12px 14px 14px;display:grid;gap:10px}
+.now{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.now .t{font-weight:600;font-size:16px}
+.now .c{color:var(--ink-2);font-size:13px}
+.roundpos{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctl{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);display:grid;place-items:center}
+.ctl.play{width:54px;height:54px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.ctl svg{width:20px;height:20px;fill:currentColor}
+.endmode{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.seg button{position:relative;border:0;background:none;width:42px;height:40px;display:grid;place-items:center;color:var(--ink-2);border-radius:9px}
+.seg button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.3;padding:6px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:10}
+.seg button:last-child::after{left:auto;right:0;transform:translate(0,4px)}
+.seg button:hover::after,.seg button:focus-visible::after,.seg button.tip::after{opacity:1;transform:translate(-50%,0)}
+.seg button:last-child:hover::after,.seg button:last-child:focus-visible::after,.seg button:last-child.tip::after{transform:translate(0,0)}
+@media (hover:none){.seg button:hover::after{opacity:0}.seg button.tip::after{opacity:1}}
+.upnext{font-size:13px;color:var(--ink-2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.upnext .lbl{text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--ink-3);font-weight:600}
+.chip{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink)}
+.chip.sep{border-style:dashed;color:var(--ink-3);background:none}
+
+.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.lhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lhead h2{font-family:var(--display);font-size:17px;margin:0;font-weight:600}
+.lhead .meta{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.lhead .meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.wlabel{position:relative;display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--ink)}
+.info{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink-3);background:none;color:var(--ink-2);font:italic 600 11px/1 Georgia,serif;display:grid;place-items:center;padding:0}
+.info:hover,.info[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.infotip{position:absolute;right:0;top:calc(100% + 8px);width:max-content;max-width:220px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:500;line-height:1.35;padding:7px 10px;border-radius:7px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s;z-index:10}
+.info:hover+.infotip,.info:focus-visible+.infotip,.info[aria-expanded="true"]+.infotip{opacity:1;transform:none}
+ol.songs{list-style:none;margin:0;padding:0}
+.song{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
+.song:last-child{border-bottom:0}
+.song.current{background:var(--accent-soft)}
+.song .name{border:0;background:none;padding:0;text-align:left;min-width:0}
+.song .name .t{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.song .name .c{display:block;font-size:12.5px;color:var(--ink-2)}
+.song .stats{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.share{flex:1;height:5px;border-radius:3px;background:var(--bar-track);overflow:hidden;max-width:220px}
+.share i{display:block;height:100%;background:var(--bar);border-radius:3px;transition:width .3s}
+.stats .freq{color:var(--ink)}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.stepper button{width:40px;height:40px;border:0;background:none;font-size:20px;line-height:1;color:var(--ink)}
+.stepper button:disabled{color:var(--ink-3);cursor:default}
+.stepper input{width:44px;height:40px;border:0;border-inline:1px solid var(--line);background:var(--surface);text-align:center;font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px}
+.badge.now{background:var(--accent);color:var(--accent-ink)}
+.badge.bad{background:var(--warn-soft);color:var(--warn)}
+.song.blocked .name .t{color:var(--ink-3)}
+.song.blocked .stats{color:var(--warn)}
+form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface-2)}
+.moved{animation:flash .9s ease-out}
+@keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
+
+@media (max-width:760px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .player{top:env(safe-area-inset-top,0px);z-index:5;border-radius:12px}
+  .video .vt{font-size:19px}
+  .pbody{padding:10px 12px 12px;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="note"><b>Mockup</b><span>Sample songs, no real YouTube playback. Each song "plays" for 8 seconds so you can watch the rotation advance. Resize the window or open on your phone to see the stacked layout.</span></div>
+
+  <header class="top">
+    <div class="intro">
+      <h1 class="brand"><span class="heavy">heavy</span> <span class="light">rotation</span></h1>
+      <p class="tagline">Give your favourites more airtime. Turn up the songs you love, and they come around more often while the rest of the playlist stays in the mix.</p>
+    </div>
+    <form class="load" id="loadForm">
+      <input class="field" id="plLink" placeholder="Paste a YouTube playlist or video link" aria-label="YouTube playlist or video link" autocomplete="off">
+      <button class="btn primary" id="loadBtn" type="submit">Load</button>
+    </form>
+  </header>
+  <div class="status" id="status" role="status" hidden></div>
+  <div class="try"><span>Try a sample link:</span>
+    <button type="button" data-link="https://www.youtube.com/playlist?list=PLsampleEveningRotation">Playlist</button>
+    <button type="button" data-link="https://youtu.be/sAmPlEvid01">Single video</button>
+    <button type="button" data-link="https://www.youtube.com/watch?v=sAmPlEvid02&list=PLsampleEveningRotation&index=4">Video inside a playlist</button>
+    <button type="button" data-link="https://example.com/not-youtube">Not YouTube</button>
+  </div>
+
+  <div class="layout">
+    <section class="player" aria-label="Player">
+      <div class="video" id="video">
+        <div class="vs" id="vstate">Paused</div>
+        <div class="vt" id="vtitle"></div>
+        <div class="prog"><i id="prog"></i></div>
+      </div>
+      <div class="pbody">
+        <div class="now">
+          <div><div class="t" id="nowTitle"></div><div class="c" id="nowChan"></div></div>
+          <div class="roundpos" id="roundPos"></div>
+        </div>
+        <div class="controls">
+          <button class="ctl" id="prevBtn" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+          <button class="ctl play" id="playBtn" aria-label="Play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="ctl" id="nextBtn" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+          <div class="endmode">
+            <div class="seg" role="group" aria-label="When the loop ends">
+              <button data-mode="shuffle" aria-pressed="true" aria-label="New shuffle" data-tip="New shuffle each loop"><svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+              <button data-mode="same" aria-pressed="false" aria-label="Same order" data-tip="Repeat the same order"><svg viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button>
+              <button data-mode="stop" aria-pressed="false" aria-label="Stop" data-tip="Stop after this loop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="upnext" id="upNext"></div>
+      </div>
+    </section>
+
+    <section class="list" aria-label="Songs">
+      <div class="lhead">
+        <h2 id="plName">Evening rotation</h2>
+        <div class="meta"><span id="listMeta"></span>
+          <span class="wlabel">Weight <button type="button" class="info" id="infoBtn" aria-label="What weight means" aria-describedby="infoTip">i</button><span class="infotip" id="infoTip" role="tooltip">The heavier the weight, the more often a song comes around.</span></span>
+        </div>
+      </div>
+      <ol class="songs" id="songs"></ol>
+      <form class="add" id="addForm">
+        <input class="field" id="addLink" placeholder="Add a single YouTube video link" aria-label="Add a single YouTube video link" autocomplete="off">
+        <button class="btn" type="submit">Add</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<script>
+const songs = [
+  {id:'a', title:'Paper Lanterns', chan:'Mara Quell', w:4, hue:12},
+  {id:'b', title:'Northbound', chan:'The Lindens', w:2, hue:200},
+  {id:'c', title:'Glass Harbour', chan:'Oda Fenwick', w:2, hue:175},
+  {id:'d', title:'Slow Orbit', chan:'Kite Assembly', w:1, hue:265},
+  {id:'e', title:'Tangerine Static', chan:'Mara Quell', w:1, hue:30},
+  {id:'f', title:'Low Tide Radio', chan:'Juno Park', w:1, hue:190},
+  {id:'g', title:'Hollow Bells', chan:'The Lindens', w:1, hue:320},
+  {id:'h', title:'Night Market', chan:'Sable & Pine', w:1, hue:345},
+  {id:'i', title:'Quiet Engine', chan:'Kite Assembly', w:1, hue:150},
+  {id:'j', title:'Violet Hour', chan:'Oda Fenwick', w:1, hue:285},
+  {id:'k', title:'Fieldnotes (Official Video)', chan:'Label Records', w:1, hue:0, blocked:true},
+];
+const byId = id => songs.find(s => s.id === id);
+const playable = () => songs.filter(s => !s.blocked);
+const SONG_SECONDS = 8;
+
+let mode = 'shuffle', playing = false, current = 'a', round = [], pos = -1, roundNo = 1, history = [], elapsed = 0;
+let displayOrder = [];
+
+function gcd(a,b){ return b ? gcd(b, a % b) : a; }
+function plays(){
+  const ps = playable(); const g = ps.reduce((acc,s) => gcd(acc, s.w), 0) || 1;
+  const counts = Object.fromEntries(ps.map(s => [s.id, s.w / g]));
+  return {counts, len: Object.values(counts).reduce((a,b) => a + b, 0)};
+}
+// Spread each song's plays evenly with a random offset, then break up back-to-back repeats.
+function buildRound(avoidFirst){
+  const {counts, len} = plays(); const slots = [];
+  for (const [id,c] of Object.entries(counts)) {
+    const off = Math.random();
+    for (let k = 0; k < c; k++) slots.push({id, p: (k + off) / c + Math.random() * 1e-6});
+  }
+  slots.sort((x,y) => x.p - y.p);
+  const r = slots.map(s => s.id);
+  for (let i = 0; i < r.length; i++) {
+    const prev = i === 0 ? avoidFirst : r[i-1];
+    if (r[i] === prev) {
+      const j = r.findIndex((x,k) => k > i && x !== prev && r[k-1] !== x && (k+1 >= r.length || r[k+1] !== r[i]));
+      if (j > -1) [r[i], r[j]] = [r[j], r[i]];
+    }
+  }
+  return r;
+}
+function startRound(avoid){ round = buildRound(avoid); pos = -1; }
+
+function next(){
+  history.push(current);
+  pos++;
+  if (pos >= round.length) {
+    if (mode === 'stop') { pos = round.length - 1; playing = false; history.pop(); render(); return; }
+    roundNo++;
+    if (mode === 'shuffle') round = buildRound(current);
+    pos = 0;
+  }
+  current = round[pos]; elapsed = 0; render();
+}
+function prev(){ if (!history.length) return; current = history.pop(); elapsed = 0; render(); }
+function playNow(id){ history.push(current); current = id; elapsed = 0; playing = true; startRound(id); render(); }
+
+function upcoming(n){
+  const out = []; let i = pos + 1;
+  while (out.length < n && i < round.length) out.push(round[i++]);
+  if (out.length < n && mode !== 'stop') { out.push('|'); const nr = mode === 'same' ? round : buildRound(round[round.length-1]); for (let k = 0; out.length < n + 1 && k < nr.length; k++) out.push(nr[k]); }
+  return out;
+}
+
+function sortOrder(){
+  displayOrder = [...songs].sort((a,b) => (a.blocked - b.blocked) || (b.w - a.w) || a.title.localeCompare(b.title)).map(s => s.id);
+}
+
+const $ = id => document.getElementById(id);
+function renderPlayer(){
+  const s = byId(current);
+  $('video').style.background = `linear-gradient(135deg, hsl(${s.hue} 55% 42%), hsl(${(s.hue+40)%360} 50% 26%))`;
+  $('vtitle').textContent = s.title;
+  $('vstate').textContent = playing ? 'Playing' : 'Paused';
+  $('nowTitle').textContent = s.title; $('nowChan').textContent = s.chan;
+  const {len} = plays();
+  $('roundPos').textContent = pos < 0 ? `Loop ${roundNo} · rebuilt, ${len} plays` : `Loop ${roundNo} · ${pos+1} of ${len}`;
+  $('playBtn').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  $('playIcon').innerHTML = playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  $('prog').style.width = (elapsed / SONG_SECONDS * 100) + '%';
+  const up = upcoming(4);
+  $('upNext').innerHTML = '<span class="lbl">Up next</span>' + (up.length ? up.map(id => id === '|' ? '<span class="chip sep">new loop</span>' : `<span class="chip">${byId(id).title}</span>`).join('') : '<span>End of loop, then stop</span>');
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+}
+// Say how often a song plays in everyday terms: "1 in every 5 songs".
+function howOften(c, len){
+  if (c === len) return 'Every song';
+  const n = len / c;
+  if (Number.isInteger(n)) return `1 in every ${n} songs`;
+  if (n < 2.5) return `${c} in every ${len} songs`;
+  return `About 1 in every ${Math.round(n)} songs`;
+}
+function renderList(){
+  const ps = playable(); const total = ps.reduce((a,s) => a + s.w, 0); const {counts, len} = plays();
+  $('listMeta').textContent = `${songs.length} songs · ${len} plays per loop`;
+  const ol = $('songs'); const focusedId = document.activeElement?.closest?.('.song')?.dataset.id; const focusedRole = document.activeElement?.dataset?.role;
+  ol.innerHTML = '';
+  for (const id of displayOrder) {
+    const s = byId(id); const li = document.createElement('li');
+    li.className = 'song' + (id === current ? ' current' : '') + (s.blocked ? ' blocked' : ''); li.dataset.id = id;
+    const pct = s.blocked ? 0 : s.w / total * 100;
+    li.innerHTML = `
+      <button class="name" data-role="name" aria-label="Play ${s.title} now"><span class="t">${s.title}</span><span class="c">${s.chan}</span></button>
+      <div class="stepper">
+        <button data-role="dec" aria-label="Lower weight" ${s.w <= 1 ? 'disabled' : ''}>−</button>
+        <input id="w-${id}" data-role="w" type="number" min="1" inputmode="numeric" value="${s.w}" aria-label="Weight for ${s.title}">
+        <button data-role="inc" aria-label="Raise weight">+</button>
+      </div>
+      <div class="stats">${s.blocked
+        ? `<span class="badge bad">Can't play here</span><span>Embedding is turned off for this video, so it's skipped.</span>`
+        : `${id === current ? '<span class="badge now">Now</span>' : ''}<span class="share"><i style="width:${pct}%"></i></span><span class="freq">${howOften(counts[id], len)}</span>`}</div>`;
+    ol.appendChild(li);
+  }
+  if (focusedId && focusedRole) ol.querySelector(`.song[data-id="${focusedId}"] [data-role="${focusedRole}"]`)?.focus();
+}
+function render(){ renderPlayer(); renderList(); }
+
+let resortTimer;
+function setWeight(id, w){
+  const s = byId(id); s.w = Math.max(1, Math.min(99, Math.round(w) || 1));
+  startRound(current); render();
+  clearTimeout(resortTimer);
+  resortTimer = setTimeout(() => {
+    const before = displayOrder.join(); sortOrder();
+    if (before !== displayOrder.join()) { renderList(); $('songs').querySelector(`.song[data-id="${id}"]`)?.classList.add('moved'); }
+  }, 1200);
+}
+
+$('songs').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return; const id = btn.closest('.song').dataset.id; const s = byId(id);
+  if (btn.dataset.role === 'inc') setWeight(id, s.w + 1);
+  else if (btn.dataset.role === 'dec') setWeight(id, s.w - 1);
+  else if (btn.dataset.role === 'name' && !s.blocked) playNow(id);
+});
+$('songs').addEventListener('change', e => { if (e.target.dataset.role === 'w') setWeight(e.target.closest('.song').dataset.id, +e.target.value); });
+$('playBtn').onclick = () => { playing = !playing; render(); };
+$('nextBtn').onclick = next;
+$('prevBtn').onclick = prev;
+// Tap toggles the weight tooltip; tapping anywhere else closes it.
+$('infoBtn').addEventListener('click', e => { e.stopPropagation(); const b = $('infoBtn'); b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') !== 'true'); });
+document.addEventListener('click', () => $('infoBtn').setAttribute('aria-expanded', 'false'));
+
+// Touch screens have no hover, so a tap shows the tooltip briefly.
+let tipTimer;
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+  mode = b.dataset.mode; renderPlayer();
+  document.querySelectorAll('.seg button.tip').forEach(x => x.classList.remove('tip'));
+  b.classList.add('tip'); clearTimeout(tipTimer); tipTimer = setTimeout(() => b.classList.remove('tip'), 1600);
+});
+// Work out what a pasted link points to: a playlist, a single video, or a video opened inside a playlist.
+function parseLink(text){
+  const raw = text.trim(); if (!raw) return {type:'empty'};
+  let u; try { u = new URL(/^https?:\/\//i.test(raw) ? raw : 'https://' + raw); } catch { return {type:'invalid'}; }
+  const host = u.hostname.replace(/^(www|m|music)\./, '');
+  let v = null; const list = u.searchParams.get('list');
+  if (host === 'youtu.be') v = u.pathname.slice(1).split('/')[0] || null;
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    if (u.pathname === '/watch') v = u.searchParams.get('v');
+    else { const m = u.pathname.match(/^\/(shorts|live|embed|v)\/([^/?#]+)/); if (m) v = m[2]; }
+  } else return {type:'invalid'};
+  if (v && list) return {type:'both', v, list};
+  if (v) return {type:'video', v};
+  if (list) return {type:'playlist', list};
+  return {type:'invalid'};
+}
+
+function showStatus(html, kind){ const el = $('status'); el.className = 'status' + (kind ? ' ' + kind : ''); el.innerHTML = html; el.hidden = false; }
+function hideStatus(){ $('status').hidden = true; }
+
+let added = 0;
+function addSong(){
+  added++; const id = 'x' + added;
+  songs.push({id, title: `Added song ${added}`, chan: 'Single link', w: 1, hue: (added * 67) % 360});
+  sortOrder(); startRound(current); render();
+  requestAnimationFrame(() => $('songs').querySelector(`.song[data-id="${id}"]`)?.classList.add('moved'));
+  return `Added song ${added}`;
+}
+function loadPlaylist(){ return `Loaded the playlist. <span class="muted">(In the mockup the sample songs stay; the real app replaces the list.)</span>`; }
+
+const btnLabel = {playlist:'Load', video:'Add', both:'Load', empty:'Load', invalid:'Load'};
+$('plLink').addEventListener('input', () => { $('loadBtn').textContent = btnLabel[parseLink($('plLink').value).type]; hideStatus(); });
+$('loadForm').addEventListener('submit', e => {
+  e.preventDefault(); const r = parseLink($('plLink').value);
+  if (r.type === 'empty') return;
+  if (r.type === 'invalid') return showStatus(`That doesn't look like a YouTube link. Paste a playlist link (it contains <code>list=</code>) or a video link.`, 'err');
+  if (r.type === 'playlist') { showStatus(loadPlaylist(), 'ok'); $('plLink').value = ''; }
+  if (r.type === 'video') { showStatus(`${addSong()} to ${$('plName').textContent}, weight 1.`, 'ok'); $('plLink').value = ''; }
+  if (r.type === 'both') showStatus(`This link is a video inside a playlist. <span class="choice"><button type="button" class="btn primary" data-pick="playlist">Load the whole playlist</button><button type="button" class="btn" data-pick="video">Add just this video</button></span>`);
+  $('loadBtn').textContent = btnLabel[parseLink($('plLink').value).type];
+});
+$('status').addEventListener('click', e => {
+  const pick = e.target.closest('[data-pick]')?.dataset.pick; if (!pick) return;
+  showStatus(pick === 'playlist' ? loadPlaylist() : `${addSong()} to ${$('plName').textContent}, weight 1.`, 'ok');
+  $('plLink').value = ''; $('loadBtn').textContent = 'Load';
+});
+document.querySelectorAll('.try button').forEach(b => b.onclick = () => { $('plLink').value = b.dataset.link; $('plLink').dispatchEvent(new Event('input')); $('plLink').focus(); });
+
+$('addForm').addEventListener('submit', e => {
+  e.preventDefault(); const r = parseLink($('addLink').value);
+  if (r.type === 'empty') return;
+  if (r.type === 'playlist') return showStatus(`That's a playlist link. Paste it in the top bar to load it.`, 'err');
+  if (r.type === 'invalid') return showStatus(`That doesn't look like a YouTube video link.`, 'err');
+  showStatus(`${addSong()} to ${$('plName').textContent}, weight 1.`, 'ok'); $('addLink').value = '';
+});
+
+setInterval(() => {
+  if (!playing) return;
+  elapsed += 0.25;
+  if (elapsed >= SONG_SECONDS) next(); else $('prog').style.width = (elapsed / SONG_SECONDS * 100) + '%';
+}, 250);
+
+sortOrder(); startRound(null); pos = 0; current = round[0]; render();
+</script>
