@@ -222,6 +222,21 @@ const scenarios = {
     return { pass: top === A2 && $('status').textContent.startsWith(`Added Title ${A2} to the queue.`), top, note: $('status').textContent };
   },
 
+  // The pen's header collapses and expands it, and the choice is remembered.
+  async 'collapse-pen'() {
+    await import('/app.js');
+    await wait(800);
+    const toggle = $('penToggle');
+    toggle.click();
+    await wait(100);
+    const collapsed = $('yard').hidden && toggle.getAttribute('aria-expanded') === 'false';
+    const saved = JSON.parse(localStorage.getItem('hr:settings')).penCollapsed;
+    toggle.click();
+    await wait(100);
+    const expanded = !$('yard').hidden && toggle.getAttribute('aria-expanded') === 'true';
+    return { pass: collapsed && saved === true && expanded, collapsed, saved, expanded };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

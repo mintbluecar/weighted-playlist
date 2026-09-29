@@ -96,7 +96,7 @@ export class CrewView {
     const size = this.crew.sizeOf(id) * SCALE;
     this.sprites.set(id, {
       el, body, flip, tag, tip, size,
-      x: Math.random() * Math.max(0, this.yard.clientWidth - size),
+      x: this.yard.clientWidth ? Math.random() * Math.max(0, this.yard.clientWidth - size) : null, // placed when the pen is visible
       dir: Math.random() < 0.5 ? -1 : 1,
       mode: 'idle',
       t: 0.8,
@@ -192,6 +192,8 @@ export class CrewView {
     this.lastFrame = now;
     const width = this.yard.clientWidth;
     for (const [id, sprite] of this.sprites) {
+      if (!width) continue; // pen collapsed: nothing to lay out
+      if (sprite.x === null) sprite.x = Math.random() * Math.max(0, width - sprite.size);
       const isCurrent = id === this.current && !sprite.leaving;
       sprite.el.classList.toggle('current', isCurrent);
       if (!this.paused && !this.reducedMotion) {

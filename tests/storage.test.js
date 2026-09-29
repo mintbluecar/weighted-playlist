@@ -25,9 +25,9 @@ test('playlist weights and extras round-trip, and weights of 1 are not stored', 
 test('settings round-trip, with defaults and a bad end mode', () => {
   const backend = memoryBackend();
   const store = createStore(backend);
-  assert.deepEqual(store.loadSettings(), { lastSource: null, endMode: 'shuffle' });
-  store.saveSettings({ lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop' });
-  assert.deepEqual(store.loadSettings(), { lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop' });
+  assert.deepEqual(store.loadSettings(), { lastSource: null, endMode: 'shuffle', penCollapsed: false });
+  store.saveSettings({ lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop', penCollapsed: true });
+  assert.deepEqual(store.loadSettings(), { lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop', penCollapsed: true });
   backend.setItem('hr:settings', JSON.stringify({ endMode: 'sideways' }));
   assert.equal(store.loadSettings().endMode, 'shuffle');
   backend.setItem('hr:settings', JSON.stringify({ endMode: 'same' })); // option removed
@@ -46,7 +46,7 @@ test('corrupt JSON falls back to defaults', () => {
   backend.setItem('hr:settings', '[[[');
   const store = createStore(backend);
   assert.deepEqual(store.loadPlaylist('PL1'), { weights: {}, extras: [], removed: [] });
-  assert.deepEqual(store.loadSettings(), { lastSource: null, endMode: 'shuffle' });
+  assert.deepEqual(store.loadSettings(), { lastSource: null, endMode: 'shuffle', penCollapsed: false });
 });
 
 test('no storage at all: nothing throws and defaults are used', () => {

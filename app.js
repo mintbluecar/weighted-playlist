@@ -512,6 +512,19 @@ $('infoBtn').addEventListener('click', e => {
 });
 document.addEventListener('click', () => $('infoBtn').setAttribute('aria-expanded', 'false'));
 
+// The pen collapses from its header; the crew keeps counting while it's hidden.
+function setPenCollapsed(collapsed) {
+  $('yard').hidden = collapsed;
+  $('penToggle').setAttribute('aria-expanded', String(!collapsed));
+  $('yard').closest('.pen').classList.toggle('collapsed', collapsed);
+}
+setPenCollapsed(settings.penCollapsed);
+$('penToggle').addEventListener('click', () => {
+  settings.penCollapsed = !settings.penCollapsed;
+  setPenCollapsed(settings.penCollapsed);
+  store.saveSettings(settings);
+});
+
 if (!store.available) $('storageNote').hidden = false;
 render();
 boot();

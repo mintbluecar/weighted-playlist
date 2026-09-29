@@ -67,7 +67,11 @@ export function createStore(backend) {
       const lastSource = isObject(source) && ['playlist', 'mine'].includes(source.type) && typeof source.id === 'string'
         ? { type: source.type, id: source.id }
         : null;
-      return { lastSource, endMode: END_MODES.includes(data.endMode) ? data.endMode : 'shuffle' };
+      return {
+        lastSource,
+        endMode: END_MODES.includes(data.endMode) ? data.endMode : 'shuffle',
+        penCollapsed: data.penCollapsed === true,
+      };
     },
 
     saveSettings(settings) {

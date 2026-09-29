@@ -198,6 +198,7 @@ A wide, low strip across the top of the page, above the player and the song list
 - Holds up to **20** creatures. A new creature can briefly be the 21st; when its play counts, the smallest creature (fewest plays, then least recently played; never the current song's) walks out of the pen.
 - When the pen is full, the header reads **"Your top 20 songs"**. Otherwise it shows only the title.
 - Header: "Grow your crew by playing songs!"
+- **Collapsible:** the header is a toggle (▾) that hides or shows the pen. The choice is remembered (`hr:settings` → `penCollapsed`). The crew keeps hatching and counting while collapsed; creatures hatched while hidden are placed when the pen opens.
 - Empty state: "Press play and your songs show up here."
 - Each creature has a small tag with its song title.
 - **Hover** (or tap on phones, shown for about 2 seconds) shows the song title and "Played 1 time" / "Played X times".
