@@ -75,3 +75,50 @@ test('removed songs are remembered per playlist', () => {
   backend.setItem(playlistKey('PL2'), JSON.stringify({ removed: ['ok', 7, null] }));
   assert.deepEqual(store.loadPlaylist('PL2').removed, ['ok']);
 });
+
+test('rotation round-trips, dropping weights of 1', () => {
+  const backend = memoryBackend();
+  const store = createStore(backend);
+  store.saveRotation({
+    sources: ['PL1', 'PL2'], weights: { a: 4, b: 1 }, extras: ['x'], removed: ['r'],
+    sourceInfo: { PL1: { title: 'Road Trip', owner: 'Me', count: 12, status: 'ok' } },
+  });
+  assert.deepEqual(JSON.parse(backend.getItem('hr:rotation')).weights, { a: 4 });
+  assert.deepEqual(store.loadRotation(), {
+    sources: ['PL1', 'PL2'], weights: { a: 4 }, extras: ['x'], removed: ['r'],
+    sourceInfo: { PL1: { title: 'Road Trip', owner: 'Me', count: 12, status: 'ok' } },
+  });
+});
+
+test('no saved data gives an empty rotation', () => {
+  assert.deepEqual(createStore(memoryBackend()).loadRotation(),
+    { sources: [], weights: {}, extras: [], removed: [], sourceInfo: {} });
+});
+
+test('an old saved playlist becomes the rotation', () => {
+  const backend = memoryBackend();
+  backend.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop' }));
+  backend.setItem(playlistKey('PL1'), JSON.stringify({ weights: { a: 5 }, extras: ['x'], removed: ['r'] }));
+  assert.deepEqual(createStore(backend).loadRotation(),
+    { sources: ['PL1'], weights: { a: 5 }, extras: ['x'], removed: ['r'], sourceInfo: {} });
+});
+
+test('an old list of single videos becomes the rotation', () => {
+  const backend = memoryBackend();
+  backend.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'mine', id: 'mine' } }));
+  backend.setItem(playlistKey(MINE), JSON.stringify({ weights: { x: 3 }, extras: ['x'] }));
+  assert.deepEqual(createStore(backend).loadRotation(),
+    { sources: [], weights: { x: 3 }, extras: ['x'], removed: [], sourceInfo: {} });
+});
+
+test('a corrupt rotation is cleaned up on load', () => {
+  const backend = memoryBackend();
+  backend.setItem('hr:rotation', JSON.stringify({
+    sources: ['PL1', 'PL1', 7, 'PL2'], weights: { a: 'x', b: 150 }, extras: 'nope', removed: [null, 'r'],
+    sourceInfo: { PL1: { title: 5, owner: 'Me', count: '12', status: 'weird' }, PL2: 'bad' },
+  }));
+  assert.deepEqual(createStore(backend).loadRotation(), {
+    sources: ['PL1', 'PL2'], weights: { a: 1, b: 99 }, extras: [], removed: ['r'],
+    sourceInfo: { PL1: { owner: 'Me' } },
+  });
+});
