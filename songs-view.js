@@ -22,6 +22,7 @@ export function setupSongList(listEl, { onPlayNow, onWeight }) {
   });
   listEl.addEventListener('change', e => {
     if (e.target.dataset.role !== 'weight') return;
+    e.target.dataset.committed = '1'; // show the stored (clamped) value even while focused
     onWeight(e.target.closest('.song').dataset.id, e.target.value);
   });
 }
@@ -65,7 +66,10 @@ export function renderSongs(listEl, rows) {
     li.querySelector('.name .c').textContent = row.author;
     li.querySelector('.name').setAttribute('aria-label', `Play ${row.title} now`);
     const input = li.querySelector('input');
-    if (document.activeElement !== input) input.value = String(row.weight);
+    if (document.activeElement !== input || input.dataset.committed) {
+      input.value = String(row.weight);
+      delete input.dataset.committed;
+    }
     input.setAttribute('aria-label', `Weight for ${row.title}`);
     li.querySelector('[data-role="dec"]').disabled = row.weight <= MIN_WEIGHT;
     li.querySelector('[data-role="inc"]').disabled = row.weight >= MAX_WEIGHT;

@@ -10,7 +10,7 @@ From this folder:
 
 Then open http://localhost:8000. On a phone on the same Wi-Fi, open `http://<this computer's local IP>:8000` (on a Mac: System Settings → Wi-Fi → Details → IP address).
 
-Tests: `node --test`
+Tests: `node --test`. Browser checks of `app.js` against a fake YouTube player (needs Google Chrome on macOS): `tests/browser/run.sh`
 
 ## Assets
 

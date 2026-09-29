@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>app.js harness</title>
+<!-- Runs the real app.js and index.html against a fake YouTube player. Open with ?scenario=<name>; see run.sh. -->
+<script type="module">
+const scenario = new URLSearchParams(location.search).get('scenario');
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const A = 'PLAAAA', B = 'PLBBBB', A1 = 'aaaaaaaaaa1', A2 = 'aaaaaaaaaa2', B1 = 'bbbbbbbbbb1';
+const realFetch = window.fetch.bind(window);
+
+// ---- fake YouTube IFrame API ----
+const playlists = { [A]: [A1, A2], [B]: [B1] };
+const cueDelay = { [A]: 20, [B]: 20 };
+const calls = { loadVideoById: [] };
+window.YT = {
+  Player: class {
+    constructor(id, opts) {
+      this.opts = opts;
+      setTimeout(() => opts.events.onReady(), 0);
+    }
+    emit(state) { this.opts.events.onStateChange({ data: state }); }
+    cuePlaylist({ list }) {
+      this.pending = list;
+      if (!playlists[list]) return; // an unknown list is never reported as cued
+      setTimeout(() => {
+        if (this.pending !== list) return;
+        this.list = list;
+        this.emit(5);
+      }, cueDelay[list]);
+    }
+    getPlaylist() { return playlists[this.list] ?? null; }
+    loadVideoById(id) { calls.loadVideoById.push(id); setTimeout(() => this.emit(1), 0); }
+    pauseVideo() { this.emit(2); }
+    playVideo() { this.emit(1); }
+    stopVideo() { this.emit(-1); }
+  },
+};
+// oEmbed stand-in: title is "Title <id>"
+window.fetch = async url => {
+  const id = decodeURIComponent(url).match(/(?:v=|list=)([A-Za-z0-9_-]+)/)?.[1] ?? '?';
+  return { ok: true, json: async () => ({ title: `Title ${id}`, author_name: 'Someone' }) };
+};
+
+// ---- saved state before the app starts: playlist A has a weight of 5 on its first song ----
+localStorage.clear();
+localStorage.setItem(`hr:playlist:${A}`, JSON.stringify({ weights: { [A1]: 5 }, extras: [] }));
+localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: A }, endMode: 'shuffle' }));
+
+// ---- the real page ----
+const html = await (await realFetch('/index.html')).text();
+document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
+const $ = id => document.getElementById(id);
+function submitLink(link) {
+  $('plLink').value = link;
+  $('loadForm').requestSubmit();
+}
+
+const scenarios = {
+  // A quick second load must not save the first playlist with the second playlist's songs.
+  async 'load-race'() {
+    cueDelay[A] = 400;               // the startup load of A is slow...
+    await import('/app.js');
+    await wait(100);
+    submitLink(`https://www.youtube.com/playlist?list=${B}`); // ...and B is loaded meanwhile
+    await wait(2000);
+    const savedA = JSON.parse(localStorage.getItem(`hr:playlist:${A}`));
+    return {
+      pass: savedA.weights[A1] === 5 && $('plName').textContent === `Title ${B}`,
+      savedA, shown: $('plName').textContent,
+    };
+  },
+
+  // A failed load while a song plays must bring the song back instead of leaving a dead player.
+  async 'failed-load'() {
+    await import('/app.js');
+    await wait(300);
+    $('playBtn').click();
+    await wait(300);
+    const playing = calls.loadVideoById.at(-1);
+    submitLink('https://www.youtube.com/playlist?list=PLXXXX');
+    await wait(12000);                // listPlaylist gives up after 10 s
+    return {
+      pass: calls.loadVideoById.length === 2 && calls.loadVideoById[1] === playing && $('status').classList.contains('err'),
+      loads: calls.loadVideoById, status: $('status').textContent,
+    };
+  },
+
+  // A typed weight outside 1–99 must show the stored value, not what was typed.
+  async 'typed-weight'() {
+    await import('/app.js');
+    await wait(300);
+    const input = $(`w-${A1}`);
+    input.focus();
+    input.value = '150';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(100);
+    const saved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).weights[A1];
+    return { pass: input.value === '99' && saved === 99, shown: input.value, saved };
+  },
+};
+
+let result;
+try {
+  result = await scenarios[scenario]();
+} catch (e) {
+  result = { pass: false, error: String(e.stack || e) };
+}
+const out = document.createElement('pre');
+out.id = 'result';
+out.textContent = `RESULT:${JSON.stringify({ scenario, ...result })}`;
+document.body.append(out);
+</script>

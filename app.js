@@ -29,6 +29,7 @@ const state = {
   order: [],                    // videoIds in display order
   playerState: STATE.UNSTARTED,
   playStarted: false,           // has the current queue item started playing yet
+  reloadCurrent: false,         // the player lost the current song (a failed playlist load)
 };
 let queue = newQueue();
 let player = null;
@@ -174,17 +175,26 @@ function loadTitles(ids) {
   });
 }
 
+// Only the latest load may apply: an older load that finishes late could read the
+// newer playlist's songs and save them under the older playlist's key.
+let loadToken = 0;
+
 async function loadPlaylist(listId) {
   if (!player) return showStatus('The YouTube player is still loading. Try again in a moment.');
+  const token = ++loadToken;
+  const wasPlaying = state.playerState === STATE.PLAYING;
   showStatus('Loading playlist…');
   let ids;
   try {
     ids = await player.listPlaylist(listId);
   } catch {
+    if (token !== loadToken) return;
+    restoreCurrentSong(wasPlaying);
     return showStatus(isMix(listId)
       ? "YouTube Mix playlists can't be loaded here. Save the songs to a regular playlist and paste that link instead."
       : "Couldn't load this playlist. It may be private or deleted.", 'err');
   }
+  if (token !== loadToken) return;
   hideStatus();
   state.title = 'YouTube playlist';
   state.owner = '';
@@ -226,7 +236,19 @@ function playSong(id) {
   if (!id) return;
   crewView.apply(crew.endPlay());
   state.playStarted = false;
+  state.reloadCurrent = false;
   player.play(id);
+  render();
+}
+
+// Cueing a playlist replaces the video in the player, so after a failed load the
+// current song has to be loaded again: now if it was playing, or on the next Play.
+function restoreCurrentSong(wasPlaying) {
+  if (!queue.current) return;
+  if (wasPlaying) return playSong(queue.current);
+  crewView.apply(crew.endPlay());
+  state.playStarted = false;
+  state.reloadCurrent = true;
   render();
 }
 
@@ -253,6 +275,7 @@ function togglePlay() {
     if (id) playSong(id);
     return;
   }
+  if (state.reloadCurrent) return playSong(queue.current);
   if (state.playerState === STATE.PLAYING) player.pause();
   else player.resume();
 }
