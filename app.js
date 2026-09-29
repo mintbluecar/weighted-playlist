@@ -133,7 +133,7 @@ function save() {
 }
 
 function addSong(id, weight, extra) {
-  state.songs.set(id, { id, title: null, author: '', weight, extra, blocked: false });
+  state.songs.set(id, { id, title: null, author: '', thumbnail: '', weight, extra, blocked: false });
 }
 
 function setWeight(id, value) {
@@ -181,6 +181,7 @@ function loadTitles(ids) {
       if (song && info) {
         song.title = info.title;
         song.author = info.author;
+        song.thumbnail = info.thumbnail;
       }
       scheduleRender();
     },
@@ -241,6 +242,7 @@ async function addVideo(videoId) {
   if (song && info) {
     song.title = info.title;
     song.author = info.author;
+    song.thumbnail = info.thumbnail;
     resort();
     render();
   }
@@ -354,6 +356,7 @@ function render() {
       id,
       title: s.title ?? id,
       author: s.author,
+      thumbnail: s.thumbnail,
       weight: s.weight,
       blocked: s.blocked,
       current: id === queue.current,

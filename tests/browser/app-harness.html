@@ -39,7 +39,7 @@ window.YT = {
 // oEmbed stand-in: title is "Title <id>"
 window.fetch = async url => {
   const id = decodeURIComponent(url).match(/(?:v=|list=)([A-Za-z0-9_-]+)/)?.[1] ?? '?';
-  return { ok: true, json: async () => ({ title: `Title ${id}`, author_name: 'Someone' }) };
+  return { ok: true, json: async () => ({ title: `Title ${id}`, author_name: 'Someone', thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` }) };
 };
 
 // ---- saved state before the app starts: playlist A has a weight of 5 on its first song ----
@@ -117,6 +117,17 @@ const scenarios = {
       pass: [A1, A2].includes(cued) && titleBefore === `Title ${cued}` && overlayHidden
         && calls.loadVideoById.length === 0 && calls.playVideo === 1,
       cued, titleBefore, overlayHidden, loads: calls.loadVideoById, plays: calls.playVideo,
+    };
+  },
+
+  // Each song row shows its thumbnail, lazily loaded.
+  async 'row-thumbnail'() {
+    await import('/app.js');
+    await wait(300);
+    const img = document.querySelector(`.song[data-id="${A1}"] .thumb img`);
+    return {
+      pass: !!img && img.getAttribute('src') === `https://i.ytimg.com/vi/${A1}/hqdefault.jpg` && img.loading === 'lazy' && img.alt === '',
+      src: img?.getAttribute('src') ?? null, loading: img?.loading ?? null,
     };
   },
 

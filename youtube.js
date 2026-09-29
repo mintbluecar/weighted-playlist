@@ -11,7 +11,8 @@ export async function fetchInfo(url, fetchImpl = globalThis.fetch) {
     if (!res.ok) return null;
     const data = await res.json();
     if (typeof data?.title !== 'string') return null;
-    return { title: data.title, author: typeof data.author_name === 'string' ? data.author_name : '' };
+    const thumbnail = typeof data.thumbnail_url === 'string' && data.thumbnail_url.startsWith('https://') ? data.thumbnail_url : '';
+    return { title: data.title, author: typeof data.author_name === 'string' ? data.author_name : '', thumbnail };
   } catch {
     return null;
   }

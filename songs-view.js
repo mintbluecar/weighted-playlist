@@ -33,7 +33,9 @@ function createRow(id) {
   const name = el('button', 'name');
   name.type = 'button';
   name.dataset.role = 'name';
-  name.append(el('span', 't'), el('span', 'c'));
+  const text = el('span', 'text');
+  text.append(el('span', 't'), el('span', 'c'));
+  name.append(el('span', 'thumb'), text);
   const stepper = el('div', 'stepper');
   const dec = el('button', null, '−');
   dec.type = 'button';
@@ -55,6 +57,19 @@ function createRow(id) {
   return li;
 }
 
+// A grey 16:9 box until the thumbnail is known; the image loads only when scrolled near.
+function setThumbnail(box, src) {
+  const img = box.querySelector('img');
+  if (!src) return img?.remove();
+  if (img?.getAttribute('src') === src) return;
+  const next = img ?? el('img');
+  next.alt = '';
+  next.loading = 'lazy';
+  next.decoding = 'async';
+  next.src = src;
+  if (!img) box.append(next);
+}
+
 export function renderSongs(listEl, rows) {
   const existing = new Map([...listEl.children].map(li => [li.dataset.id, li]));
   rows.forEach((row, index) => {
@@ -64,6 +79,7 @@ export function renderSongs(listEl, rows) {
     li.classList.toggle('blocked', row.blocked);
     li.querySelector('.name .t').textContent = row.title;
     li.querySelector('.name .c').textContent = row.author;
+    setThumbnail(li.querySelector('.thumb'), row.thumbnail);
     li.querySelector('.name').setAttribute('aria-label', `Play ${row.title} now`);
     const input = li.querySelector('input');
     if (document.activeElement !== input || input.dataset.committed) {
