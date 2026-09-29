@@ -1,4 +1,4 @@
-// Now playing, loop position, play/pause icon, up next, and the end-of-loop buttons.
+// Now playing, loop position, play/pause icon, and the end-of-loop buttons.
 const ICON_PLAY = 'M8 5v14l11-7z';
 const ICON_PAUSE = 'M7 5h4v14H7zM13 5h4v14h-4z';
 
@@ -25,17 +25,6 @@ export function renderPlayer(els, view) {
   els.videoEmpty.hidden = !view.showEmpty;
   els.videoEmpty.textContent = view.emptyText;
 
-  const label = document.createElement('span');
-  label.className = 'lbl';
-  label.textContent = 'Up next';
-  const chips = view.upcoming.map(title => {
-    const chip = document.createElement('span');
-    chip.className = title === null ? 'chip sep' : 'chip';
-    chip.textContent = title === null ? 'new loop' : title;
-    return chip;
-  });
-  els.upNext.replaceChildren(label, ...chips);
-  els.upNext.hidden = chips.length === 0;
 
   for (const button of els.endMode.querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.dataset.mode === view.endMode));

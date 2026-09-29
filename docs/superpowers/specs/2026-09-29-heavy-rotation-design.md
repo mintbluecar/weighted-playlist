@@ -143,7 +143,10 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 - After a playlist loads (or the first video is added), the first song of the loop waits in the player, paused (`cueVideoById`), so Play starts it. The video box says "Paste a playlist link above, then press play." only when nothing is loaded, and "Press play to start." when a list is loaded but nothing is waiting.
 - **Play/pause**, **next**, **previous** (goes back through what actually played), **play now** (tap a song's title).
 - Advances automatically when a song ends (player state `ENDED`).
-- **Up next** shows the next four songs, with a "new loop" marker where a loop ends.
+- **Up next** is a box listing the next 10 plays (thumbnail, title, channel), scrolling inside itself, with a "New loop" divider where the next loop starts and "Playback stops here." in stop mode. On desktop it sits above the song list; on phones it sits below the pinned player.
+  - **▲▼** swap a song with its neighbour, within its own loop only (so each loop keeps its weighted counts). A manual order is replaced when the rest of the loop is rebuilt (weight change, removal, play now).
+  - **Tap a queued song** to play it now; the songs before it are skipped.
+- **Add to queue** (queue icon on each song row, tooltip "Add to queue") puts the song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
 - The player shows `Loop {n} · {position} of {len}`.
 - **Changing a weight** keeps the current song playing and rebuilds the rest of the loop right away.
 - **Play now** plays the chosen song and starts a new loop after it.

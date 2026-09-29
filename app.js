@@ -6,6 +6,7 @@ import { createStore, MINE } from './storage.js';
 import { loadYouTubeApi, createPlayer, fetchInfo, fetchVideoInfos, playlistUrl, videoUrl, STATE } from './youtube.js';
 import { setupSongList, renderSongs, flashRow } from './songs-view.js';
 import { setupEndModeButtons, renderPlayer } from './player-view.js';
+import { setupQueue, renderQueue } from './queue-view.js';
 import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
 
@@ -54,7 +55,7 @@ setInterval(() => {
 
 const playerEls = {
   nowTitle: $('nowTitle'), nowChan: $('nowChan'), loopPos: $('loopPos'), playBtn: $('playBtn'),
-  playIcon: $('playIcon'), videoEmpty: $('videoEmpty'), upNext: $('upNext'), endMode: $('endMode'),
+  playIcon: $('playIcon'), videoEmpty: $('videoEmpty'), endMode: $('endMode'),
 };
 
 function newQueue() {
@@ -341,6 +342,27 @@ function togglePlay() {
   else player.resume();
 }
 
+// Queue box: tap a queued song to play it now (the songs before it are skipped).
+function jumpTo(where, index) {
+  if (!player) return;
+  const id = queue.jumpTo(where, index);
+  if (id) playSong(id);
+}
+
+function moveInQueue(where, index, dir) {
+  if (!queue.move(where, index, dir)) return;
+  render();
+  // keep keyboard focus on the moved song's button
+  $('queueList').querySelector(`.qitem[data-where="${where}"][data-index="${index + dir}"] [data-dir="${dir}"]`)?.focus();
+}
+
+// "Add to queue": an extra play at the top of the queue.
+function addToQueue(id) {
+  if (!queue.playNext(id)) return;
+  render();
+  showStatus(`Added ${titleOf(id)} to the queue.`, 'ok');
+}
+
 function playNow(id) {
   if (player && queue.playNow(id)) playSong(id);
 }
@@ -411,11 +433,27 @@ function render() {
     author: current?.author ?? '',
     loopText: current ? `Loop ${queue.loopNumber} · ${queue.position} of ${queue.loopLength}` : '',
     playing: state.playerState === STATE.PLAYING,
-    upcoming: state.songs.size ? queue.upcoming(4).map(id => (id === null ? null : titleOf(id))) : [],
     endMode: queue.endMode,
     showEmpty: !current,
     emptyText: state.songs.size ? 'Press play to start.' : 'Paste a playlist link above, then press play.',
   });
+  const items = state.songs.size ? queue.queueItems(10) : [];
+  let number = 0;
+  renderQueue($('queueList'), items.map((item, i) => {
+    if (item.type !== 'song') return item;
+    const song = songInfo(item.id);
+    const before = items[i - 1];
+    const after = items[i + 1];
+    return {
+      ...item,
+      number: ++number,
+      title: song?.title ?? item.id,
+      author: song?.author ?? '',
+      thumbnail: song?.thumbnail ?? '',
+      canUp: before?.type === 'song' && before.where === item.where,
+      canDown: after?.type === 'song' && after.where === item.where,
+    };
+  }));
   crewView.setCurrent(queue.current);
   crewView.setPaused(state.playerState !== STATE.PLAYING);
   crewView.refreshTitles();
@@ -423,7 +461,8 @@ function render() {
 
 // ---------- events ----------
 
-setupSongList($('songs'), { onPlayNow: playNow, onWeight: setWeight, onRemove: removeSong });
+setupSongList($('songs'), { onPlayNow: playNow, onWeight: setWeight, onRemove: removeSong, onQueue: addToQueue });
+setupQueue($('queueList'), { onJump: jumpTo, onMove: moveInQueue });
 setupEndModeButtons($('endMode'), mode => {
   queue.endMode = mode;
   settings.endMode = mode;

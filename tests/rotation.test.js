@@ -141,3 +141,84 @@ test('if every song is removed mid-loop, next returns null', () => {
   assert.equal(q.next(), null);
   assert.equal(q.current, null);
 });
+
+// Queue box: items carry where they live ('this' loop or 'next' loop) and their index in that loop.
+const songsOf = items => items.filter(i => i.type === 'song');
+
+test('queueItems lists upcoming plays, marks the new loop, and ends with stop in stop mode', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1]]);
+  q.start();
+  const items = q.queueItems(4);
+  assert.deepEqual(items.map(i => i.type), ['song', 'song', 'divider', 'song', 'song']);
+  assert.deepEqual(items[0], { type: 'song', id: q.loop[1], where: 'this', index: 1 });
+  assert.equal(items[3].where, 'next');
+  assert.equal(items[3].index, 0);
+  q.endMode = 'stop';
+  assert.deepEqual(q.queueItems(4).map(i => i.type), ['song', 'song', 'stop']);
+});
+
+test('move swaps a song with its neighbour, and the new order is what plays', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1], ['d', 1]]);
+  q.start();
+  const [x, y] = [q.loop[1], q.loop[2]];
+  assert.equal(q.move('this', 1, 1), true);
+  assert.equal(q.next(), y);
+  assert.equal(q.next(), x);
+});
+
+test('move never crosses into another loop or above the playing song', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1]]);
+  q.start();
+  const before = [...q.loop];
+  assert.equal(q.move('this', 1, -1), false, 'cannot move above the playing song');
+  assert.equal(q.move('this', 2, 1), false, 'cannot move past the end of this loop');
+  assert.equal(q.move('next', 0, -1), false, 'cannot move before the start of the next loop');
+  assert.deepEqual(q.loop, before);
+});
+
+test('reordering the next loop carries into the loop that actually plays', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1]]);
+  q.start();
+  const next = songsOf(q.queueItems(10)).filter(i => i.where === 'next').map(i => i.id);
+  assert.equal(q.move('next', 0, 1), true);
+  q.next();
+  q.next();
+  assert.deepEqual([q.next(), q.next()], [next[1], next[0]]);
+});
+
+test('jumpTo plays a later song in this loop and carries on from there', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1], ['d', 1]]);
+  const first = q.start();
+  const target = q.loop[3];
+  assert.equal(q.jumpTo('this', 3), target);
+  assert.equal(q.current, target);
+  assert.equal(q.position, 4);
+  assert.equal(q.previous(), first);
+});
+
+test('jumpTo into the next loop starts that loop at the chosen song', () => {
+  const q = queueWith([['a', 1], ['b', 1]]);
+  q.start();
+  const target = songsOf(q.queueItems(10)).find(i => i.where === 'next' && i.index === 1).id;
+  assert.equal(q.jumpTo('next', 1), target);
+  assert.equal(q.loopNumber, 2);
+  assert.equal(q.position, 2);
+});
+
+test('playNext puts a song at the top of the queue as an extra play', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1]]);
+  const first = q.start();
+  const rest = q.loop.slice(1);
+  q.playNext('c');
+  assert.equal(q.queueItems(1)[0].id, 'c');
+  assert.equal(q.loopLength, 4);
+  assert.deepEqual([q.next(), q.next(), q.next()], ['c', ...rest]);
+  assert.equal(q.playNext('nope'), false);
+  void first;
+});
+
+test('playNext before anything has played makes that song play first', () => {
+  const q = queueWith([['a', 1], ['b', 1]]);
+  q.playNext('b');
+  assert.equal(q.start(), 'b');
+});

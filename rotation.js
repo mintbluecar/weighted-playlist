@@ -121,18 +121,65 @@ export class Queue {
     return id;
   }
 
-  upcoming(n) {
-    const out = [];
-    for (let i = this.pos + 1; i < this.loop.length && out.length < n; i++) out.push(this.loop[i]);
-    if (out.length < n && this.endMode !== 'stop' && this.loop.length) {
-      out.push(null);
-      for (const id of this.#peekNextLoop()) {
-        if (out.length > n) break;
-        out.push(id);
+  // What the queue box shows: songs with where they live ('this' or 'next' loop) and their index there,
+  // a divider where the next loop starts, or a stop marker when playback stops after this loop.
+  queueItems(n) {
+    const items = [];
+    let songs = 0;
+    for (let i = this.pos + 1; i < this.loop.length && songs < n; i++, songs++) {
+      items.push({ type: 'song', id: this.loop[i], where: 'this', index: i });
+    }
+    if (songs < n && this.loop.length) {
+      if (this.endMode === 'stop') {
+        items.push({ type: 'stop' });
+      } else {
+        items.push({ type: 'divider' });
+        const next = this.#peekNextLoop();
+        for (let j = 0; j < next.length && songs < n; j++, songs++) {
+          items.push({ type: 'song', id: next[j], where: 'next', index: j });
+        }
       }
     }
-    return out;
+    return items;
   }
+
+  upcoming(n) {
+    return this.queueItems(n).filter(i => i.type !== 'stop').map(i => (i.type === 'song' ? i.id : null));
+  }
+
+  // Swap a queued song with its neighbour (dir -1 up, +1 down), within its own loop only.
+  move(where, index, dir) {
+    const loop = where === 'this' ? this.loop : this.#peekNextLoop();
+    const first = where === 'this' ? this.pos + 1 : 0;
+    const other = index + dir;
+    if (Math.min(index, other) < first || Math.max(index, other) >= loop.length) return false;
+    [loop[index], loop[other]] = [loop[other], loop[index]];
+    return true;
+  }
+
+  // Play a queued song now; the songs before it are skipped.
+  jumpTo(where, index) {
+    if (where === 'next') {
+      if (this.endMode === 'stop' || !this.#peekNextLoop()[index]) return null;
+      if (this.current) this.#remember(this.current);
+      this.loop = this.#takeNextLoop();
+      this.loopNumber++;
+    } else {
+      if (index <= this.pos || index >= this.loop.length) return null;
+      if (this.current) this.#remember(this.current);
+    }
+    this.pos = index;
+    this.current = this.loop[index];
+    return this.current;
+  }
+
+  // Put a song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
+  playNext(id) {
+    if (!this.counts.has(id)) return false;
+    this.loop.splice(this.pos + 1, 0, id);
+    return true;
+  }
+
 
   #build(counts, avoidFirst) {
     return buildLoop(counts, { avoidFirst, random: this.random });

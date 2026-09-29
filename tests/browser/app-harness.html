@@ -173,6 +173,48 @@ const scenarios = {
     return { pass: back && saved.removed.length === 0 && !saved.extras.includes(A2), back, saved };
   },
 
+  // The queue box lists what plays next, with a divider where the next loop starts.
+  async 'queue-box'() {
+    await import('/app.js');
+    await wait(800);
+    const items = [...document.querySelectorAll('#queueList .qitem')];
+    const first = items[0];
+    return {
+      pass: items.length > 0 && items.length <= 10 && !!document.querySelector('#queueList .qdivider')
+        && first.querySelector('.t').textContent.startsWith('Title ') && !!first.querySelector('.thumb'),
+      count: items.length, firstTitle: first?.querySelector('.t')?.textContent ?? null,
+    };
+  },
+
+  // ▼ swaps a queued song with the next one; tapping a queued song plays it.
+  async 'queue-move-jump'() {
+    await import('/app.js');
+    await wait(800);
+    const idsBefore = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
+    document.querySelector('#queueList .qitem [data-dir="1"]').click();
+    await wait(100);
+    const idsAfter = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
+    const target = document.querySelectorAll('#queueList .qitem')[1];
+    const targetId = target.dataset.id;
+    target.querySelector('.qplay').click();
+    await wait(100);
+    return {
+      pass: idsAfter[0] === idsBefore[1] && idsAfter[1] === idsBefore[0] && calls.loadVideoById.at(-1) === targetId
+        && $('nowTitle').textContent === `Title ${targetId}`,
+      idsBefore, idsAfter, loaded: calls.loadVideoById,
+    };
+  },
+
+  // The queue button on a song row puts it at the top of the queue.
+  async 'add-to-queue'() {
+    await import('/app.js');
+    await wait(800);
+    document.querySelector(`.song[data-id="${A2}"] [data-role="queue"]`).click();
+    await wait(100);
+    const top = document.querySelector('#queueList .qitem')?.dataset.id;
+    return { pass: top === A2 && $('status').textContent.startsWith(`Added Title ${A2} to the queue.`), top, note: $('status').textContent };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

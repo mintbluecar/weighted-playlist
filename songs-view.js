@@ -2,6 +2,8 @@
 // so typing in a weight box keeps its focus while the list re-renders.
 import { MAX_WEIGHT, MIN_WEIGHT } from './weights.js';
 
+const QUEUE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h13M3 12h13M3 18h8M18 14v8M14 18h8"/></svg>';
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -9,7 +11,7 @@ function el(tag, className, text) {
   return node;
 }
 
-export function setupSongList(listEl, { onPlayNow, onWeight, onRemove }) {
+export function setupSongList(listEl, { onPlayNow, onWeight, onRemove, onQueue }) {
   listEl.addEventListener('click', e => {
     const button = e.target.closest('button');
     const row = button?.closest('.song');
@@ -19,6 +21,7 @@ export function setupSongList(listEl, { onPlayNow, onWeight, onRemove }) {
     if (button.dataset.role === 'inc') onWeight(id, Number(input.value) + 1);
     else if (button.dataset.role === 'dec') onWeight(id, Number(input.value) - 1);
     else if (button.dataset.role === 'remove') onRemove(id);
+    else if (button.dataset.role === 'queue') onQueue(id);
     else if (button.dataset.role === 'name' && !row.classList.contains('blocked')) onPlayNow(id);
   });
   listEl.addEventListener('change', e => {
@@ -54,10 +57,15 @@ function createRow(id) {
   inc.dataset.role = 'inc';
   inc.setAttribute('aria-label', 'Raise weight');
   stepper.append(dec, input, inc);
+  const queue = el('button', 'queue-add');
+  queue.type = 'button';
+  queue.dataset.role = 'queue';
+  queue.dataset.tip = 'Add to queue';
+  queue.innerHTML = QUEUE_ICON; // static markup, no song data
   const remove = el('button', 'remove', '×');
   remove.type = 'button';
   remove.dataset.role = 'remove';
-  li.append(name, stepper, remove, el('div', 'stats'));
+  li.append(name, stepper, queue, remove, el('div', 'stats'));
   return li;
 }
 
@@ -86,6 +94,8 @@ export function renderSongs(listEl, rows) {
     setThumbnail(li.querySelector('.thumb'), row.thumbnail);
     li.querySelector('.name').setAttribute('aria-label', `Play ${row.title} now`);
     li.querySelector('.remove').setAttribute('aria-label', `Remove ${row.title}`);
+    li.querySelector('.queue-add').setAttribute('aria-label', `Add ${row.title} to queue`);
+    li.querySelector('.queue-add').disabled = row.blocked;
     const input = li.querySelector('input');
     if (document.activeElement !== input || input.dataset.committed) {
       input.value = String(row.weight);
