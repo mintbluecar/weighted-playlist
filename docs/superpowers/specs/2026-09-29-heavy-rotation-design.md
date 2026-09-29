@@ -85,9 +85,9 @@ The top bar accepts playlist and video links. The bottom box in the song list ac
 | anything else | invalid |
 
 - `www.`, `m.` and `music.` host variants are accepted, as are links pasted without `https://`.
-- Top bar, playlist: the button reads **Load**, and the list is replaced by the playlist.
+- Top bar, playlist: the button reads **Load**. The playlist is **added** to the current list (see *Multiple playlists*); the first playlist starts the list. Pasting a playlist that is already in the list says "That playlist is already in your list."
 - Top bar, video: the button reads **Add** while that link is in the field, and the video is added at weight 1. If no playlist is loaded, a new list called "My rotation" starts with it.
-- Top bar, both: the page offers **Load the whole playlist** or **Add just this video**.
+- Top bar, both: the page offers **Add the whole playlist** or **Add just this video**.
 - Bottom box, playlist link: message "That's a playlist link. Paste it in the top bar to load it."
 - Invalid: message explaining that a YouTube playlist or video link is expected.
 - YouTube Mix links (`list=RD…`) may not load in the embedded player. This gets tested during implementation; if they don't load, the page says so clearly.
@@ -97,8 +97,38 @@ The top bar accepts playlist and video links. The bottom box in the song list ac
 1. The YouTube IFrame player cues the playlist by ID (`cuePlaylist({listType: 'playlist', list})`), then `getPlaylist()` returns its video IDs. (Documented in the [IFrame Player API reference](https://developers.google.com/youtube/iframe_api_reference). A 200-video cap is reported by others but not documented.)
 2. Song titles and channel names come from YouTube's oEmbed endpoint (`https://www.youtube.com/oembed?url=…&format=json`), one request per video, a few at a time. No API key is needed; the endpoint allows requests from a local page (checked with `localhost`).
 3. The playlist title and owner come from the same oEmbed endpoint with the playlist URL (checked: it returns the playlist's title and channel).
-4. Saved weights and extra videos for that playlist are applied. Songs no longer in the playlist are dropped from storage.
-5. The last playlist used reopens automatically next time.
+4. Saved weights, extra videos and removed songs for the rotation are applied.
+5. The rotation (all its playlists) reopens automatically next time.
+6. Playlists are read with a separate, hidden YouTube player, so reading or adding a playlist never interrupts the song that is playing.
+
+## Multiple playlists and the manage page
+
+The list is a **rotation**: one or more YouTube playlists plus single videos added here. Changes only ever flow from YouTube into Loopsided; nothing here changes YouTube.
+
+### Player page
+
+- Pasting a playlist link in the top bar **adds** its songs to the rotation at their saved weight (or 1), skipping songs already in the list. Nothing is interrupted: the playing song keeps playing and the rest of the loop is rebuilt. Note: "Added <playlist title> (N new songs)."
+- List header title: no playlists → "My rotation"; one → its title (with "by <owner>"); two → "A + B"; three or more → "A + N more". When single videos were added here, the owner line adds "+ K added here".
+- A **⚙ settings icon** beside the header opens the manage page; tooltip **"Manage playlists"**.
+- Wording that makes the one-way rule clear:
+  - Bottom add box placeholder: "Add a song to this list (your YouTube playlist won't change)".
+  - Song ⋯ menu: **Remove from this list**; the note reads "Removed <title>. Still on YouTube." with Undo.
+- If the rotation changes in another tab (the manage page), the player re-reads it without interrupting the playing song.
+
+### Manage page (`manage.html`)
+
+Same look as the player, with a "← Back to player" link. It needs no YouTube player: it shows what the player page last saved.
+
+- **One card per playlist**: title, owner, song count, and a **Remove** button. Removing shows "Removed <title>." with **Undo**. A playlist that could not be read last time says "Couldn't load last time (private, deleted or a Mix)". Counts are "as of your last visit to the player".
+- **Added here** card: the single videos added in Loopsided, each with a remove button (with Undo).
+- **Add a playlist** box at the top: adds it to the rotation; its title is fetched straight away; its songs appear the next time the player loads (the card says "Songs load when you open the player").
+- **Start over**: clears the rotation (playlists, added songs, removed songs); asks for confirmation on the page first. Weights stay remembered. Settings (end of loop, pen collapsed) are kept.
+
+### Removing a playlist
+
+- Its songs leave the list, except songs that are also in another playlist in the rotation or were added here.
+- Its songs' weights stay remembered, so re-adding the playlist brings them back.
+- The last playlist can be removed; the list then holds only songs added here (or is empty).
 
 ## Weights
 
@@ -215,24 +245,24 @@ A wide, low strip across the top of the page, above the player and the song list
 
 ## Storage
 
-`localStorage`, one entry per playlist plus app settings:
+`localStorage`, one rotation plus app settings:
 
 ```json
 {
-  "hr:playlist:<listId>": {
+  "hr:rotation": {
+    "sources": ["<listId>", "<listId>"],
     "weights": { "<videoId>": 4 },
     "extras": ["<videoId>"],
-    "removed": ["<videoId>"]
+    "removed": ["<videoId>"],
+    "sourceInfo": { "<listId>": { "title": "…", "owner": "…", "count": 12, "status": "ok" } }
   },
-  "hr:settings": {
-    "lastSource": { "type": "playlist", "id": "<listId>" },
-    "endMode": "shuffle"
-  }
+  "hr:settings": { "endMode": "shuffle", "penCollapsed": false }
 }
 ```
 
-- Weights of 1 are not stored. Songs removed from the playlist are dropped.
-- A list started from single videos uses `hr:playlist:mine`.
+- Weights of 1 are not stored. Weights are never dropped (so they come back when a playlist or song returns).
+- `sourceInfo` is written by the player page each time it reads the playlists (`status`: `ok` or `error`); the manage page only reads it.
+- **Migration:** on first load without `hr:rotation`, the old `hr:settings.lastSource` and its `hr:playlist:<id>` (or `hr:playlist:mine`) entry become the rotation, so no weights are lost. Old keys are left in place.
 - Every read and write is wrapped in `try/catch`. If storage is unavailable, everything still works for the session and a small note says weights won't be remembered.
 
 ## Errors
