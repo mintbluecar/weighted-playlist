@@ -33,6 +33,8 @@ export function parseLink(text) {
   const list = url.searchParams.get('list');
   const listId = list && LIST_ID.test(list) ? list : null;
 
+  // A video opened from a YouTube Mix (the automatic radio, list ID "RD…") is just that video.
+  if (videoId && listId && isMix(listId)) return { type: 'video', videoId };
   if (videoId && listId) return { type: 'both', videoId, listId };
   if (videoId) return { type: 'video', videoId };
   if (listId) return { type: 'playlist', listId };

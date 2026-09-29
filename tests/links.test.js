@@ -67,3 +67,12 @@ test('isMix spots YouTube Mix lists', () => {
   assert.equal(isMix('RDabc123'), true);
   assert.equal(isMix(L), false);
 });
+
+test('a video opened from a YouTube Mix is a single video, not a playlist', () => {
+  assert.deepEqual(
+    parseLink(`https://www.youtube.com/watch?v=${V}&list=RD${V}&start_radio=1`),
+    { type: 'video', videoId: V },
+  );
+  assert.deepEqual(parseLink(`https://www.youtube.com/watch?v=${V}&list=RDMMabc123`), { type: 'video', videoId: V });
+  assert.deepEqual(parseLink(`https://www.youtube.com/playlist?list=RD${V}`), { type: 'playlist', listId: `RD${V}` });
+});

@@ -79,6 +79,7 @@ The top bar accepts playlist and video links. The bottom box in the song list ac
 | `youtube.com/playlist?list=L` | playlist `L` |
 | `youtube.com/watch?v=V`, `youtu.be/V`, `/shorts/V`, `/live/V`, `/embed/V` | video `V` |
 | `watch?v=V&list=L` | both: ask the user |
+| `watch?v=V&list=RD…` (a video opened from a YouTube Mix) | video `V` (the Mix is ignored) |
 | anything else | invalid |
 
 - `www.`, `m.` and `music.` host variants are accepted, as are links pasted without `https://`.
