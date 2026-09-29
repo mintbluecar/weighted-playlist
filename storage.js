@@ -51,14 +51,14 @@ export function createStore(backend) {
       if (isObject(data.weights)) {
         for (const [videoId, weight] of Object.entries(data.weights)) weights[videoId] = clampWeight(weight);
       }
-      const extras = Array.isArray(data.extras) ? data.extras.filter(x => typeof x === 'string') : [];
-      return { weights, extras };
+      const strings = list => (Array.isArray(list) ? list.filter(x => typeof x === 'string') : []);
+      return { weights, extras: strings(data.extras), removed: strings(data.removed) };
     },
 
-    savePlaylist(id, { weights, extras }) {
+    savePlaylist(id, { weights, extras, removed = [] }) {
       const kept = {};
       for (const [videoId, weight] of Object.entries(weights)) if (weight !== 1) kept[videoId] = weight;
-      return write(playlistKey(id), { weights: kept, extras });
+      return write(playlistKey(id), { weights: kept, extras, removed });
     },
 
     loadSettings() {

@@ -131,6 +131,48 @@ const scenarios = {
     };
   },
 
+  // × removes a song, remembers it, and Undo brings it back.
+  async 'remove-song'() {
+    await import('/app.js');
+    await wait(800);
+    document.querySelector(`.song[data-id="${A2}"] [data-role="remove"]`)?.click();
+    await wait(100);
+    const goneFromList = !document.querySelector(`.song[data-id="${A2}"]`);
+    const savedRemoved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
+    const undo = [...$('status').querySelectorAll('button')].find(b => b.textContent === 'Undo');
+    const note = $('status').textContent;
+    undo?.click();
+    await wait(100);
+    const back = !!document.querySelector(`.song[data-id="${A2}"]`);
+    const removedAfterUndo = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
+    return {
+      pass: goneFromList && savedRemoved.includes(A2) && note.startsWith(`Removed Title ${A2}.`) && back && removedAfterUndo.length === 0,
+      goneFromList, savedRemoved, note, back, removedAfterUndo,
+    };
+  },
+
+  // A removed song stays out when the playlist is loaded again.
+  async 'removed-stays-removed'() {
+    localStorage.setItem(`hr:playlist:${A}`, JSON.stringify({ weights: {}, extras: [], removed: [A2] }));
+    await import('/app.js');
+    await wait(800);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id);
+    return { pass: ids.length === 1 && ids[0] === A1, ids };
+  },
+
+  // Pasting a removed song's link brings it back as a playlist song, not an extra.
+  async 'readd-removed'() {
+    localStorage.setItem(`hr:playlist:${A}`, JSON.stringify({ weights: {}, extras: [], removed: [A2] }));
+    await import('/app.js');
+    await wait(800);
+    $('addLink').value = `https://youtu.be/${A2}`;
+    $('addForm').requestSubmit();
+    await wait(200);
+    const saved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`));
+    const back = !!document.querySelector(`.song[data-id="${A2}"]`);
+    return { pass: back && saved.removed.length === 0 && !saved.extras.includes(A2), back, saved };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

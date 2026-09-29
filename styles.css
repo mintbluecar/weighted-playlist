@@ -94,9 +94,18 @@ form.load{display:flex;gap:8px;width:100%;max-width:640px}
 .infotip{position:absolute;right:0;top:calc(100% + 8px);width:max-content;max-width:220px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:500;line-height:1.35;padding:7px 10px;border-radius:7px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s;z-index:10}
 .info:hover+.infotip,.info:focus-visible+.infotip,.info[aria-expanded="true"]+.infotip{opacity:1;transform:none}
 ol.songs{list-style:none;margin:0;padding:0}
-.song{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
+.song{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
 .song:last-child{border-bottom:0}
 .song.current{background:var(--accent-soft)}
+.song:not(.blocked):hover{background:var(--surface-2)}
+.song.current:not(.blocked):hover{background:var(--accent-soft)}
+.song:not(.blocked) .name{cursor:pointer}
+.song:not(.blocked) .name:hover .t,.song:not(.blocked) .name:focus-visible .t{text-decoration:underline;text-underline-offset:2px}
+.song .thumb{position:relative}
+.song .thumb::after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:#fff;background:rgba(0,0,0,.4);opacity:0;transition:opacity .15s}
+.song:not(.blocked) .name:hover .thumb::after,.song:not(.blocked) .name:focus-visible .thumb::after{opacity:1}
+.song .remove{width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-3);font-size:20px;line-height:1}
+.song .remove:hover,.song .remove:focus-visible{color:var(--warn);background:var(--warn-soft)}
 .song .name{border:0;background:none;padding:0;text-align:left;min-width:0;display:flex;align-items:center;gap:10px}
 .song .name .text{min-width:0}
 .song .thumb{flex:none;width:64px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}

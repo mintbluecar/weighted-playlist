@@ -158,6 +158,8 @@ The mockup is the reference for layout and copy.
 - **Phone:** stacked; the player and controls stay pinned at the top while the list scrolls.
 - **Song list header:** playlist title and owner, `{songs} songs · {len} plays per loop`, and a **Weight ⓘ** label. The ⓘ tooltip reads: "The heavier the weight, the more often a song comes around." Hover or focus shows it; on phones, tap to open and tap elsewhere to close.
 - **Song row:** title and channel (tap to play now), a `−` / number / `+` weight control sized for thumbs (number can be typed), the share bar and frequency line. The playing song is highlighted with a "Now" badge.
+- **Removing:** each row has a × button. The song leaves the list; a note says "Removed <title>." with **Undo**. Removed playlist songs stay out when the playlist is read again (saved as `removed`); pasting a removed song's link brings it back. A playing song that is removed finishes, then the loop continues without it. Nothing changes on YouTube (editing the YouTube playlist would need Google sign-in; out of scope).
+- **Hover:** rows tint on hover, the title underlines, and a ▶ appears over the thumbnail (also on keyboard focus).
 - **Sorting:** by weight, highest first, then by title. Re-sorts about a second after the last weight change so rows don't jump while tapping; the moved row briefly highlights.
 - **Themes:** light and dark, following the system setting.
 
@@ -211,7 +213,8 @@ A box under the player (**The crew**) where small creatures walk around, one per
 {
   "hr:playlist:<listId>": {
     "weights": { "<videoId>": 4 },
-    "extras": ["<videoId>"]
+    "extras": ["<videoId>"],
+    "removed": ["<videoId>"]
   },
   "hr:settings": {
     "lastSource": { "type": "playlist", "id": "<listId>" },

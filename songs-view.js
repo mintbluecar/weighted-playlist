@@ -9,7 +9,7 @@ function el(tag, className, text) {
   return node;
 }
 
-export function setupSongList(listEl, { onPlayNow, onWeight }) {
+export function setupSongList(listEl, { onPlayNow, onWeight, onRemove }) {
   listEl.addEventListener('click', e => {
     const button = e.target.closest('button');
     const row = button?.closest('.song');
@@ -18,6 +18,7 @@ export function setupSongList(listEl, { onPlayNow, onWeight }) {
     const input = row.querySelector('input');
     if (button.dataset.role === 'inc') onWeight(id, Number(input.value) + 1);
     else if (button.dataset.role === 'dec') onWeight(id, Number(input.value) - 1);
+    else if (button.dataset.role === 'remove') onRemove(id);
     else if (button.dataset.role === 'name' && !row.classList.contains('blocked')) onPlayNow(id);
   });
   listEl.addEventListener('change', e => {
@@ -53,7 +54,10 @@ function createRow(id) {
   inc.dataset.role = 'inc';
   inc.setAttribute('aria-label', 'Raise weight');
   stepper.append(dec, input, inc);
-  li.append(name, stepper, el('div', 'stats'));
+  const remove = el('button', 'remove', '×');
+  remove.type = 'button';
+  remove.dataset.role = 'remove';
+  li.append(name, stepper, remove, el('div', 'stats'));
   return li;
 }
 
@@ -81,6 +85,7 @@ export function renderSongs(listEl, rows) {
     li.querySelector('.name .c').textContent = row.author;
     setThumbnail(li.querySelector('.thumb'), row.thumbnail);
     li.querySelector('.name').setAttribute('aria-label', `Play ${row.title} now`);
+    li.querySelector('.remove').setAttribute('aria-label', `Remove ${row.title}`);
     const input = li.querySelector('input');
     if (document.activeElement !== input || input.dataset.committed) {
       input.value = String(row.weight);

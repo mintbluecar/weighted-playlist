@@ -30,6 +30,9 @@ const state = {
   playerState: STATE.UNSTARTED,
   playStarted: false,           // has the current queue item started playing yet
   reloadCurrent: false,         // the player lost the current song (a failed playlist load)
+  playlistIds: new Set(),       // songs that came from the YouTube playlist itself
+  removed: new Set(),           // playlist songs removed here; kept out when the playlist is read again
+  removedInfo: new Map(),       // videoId -> song removed this session (for Undo and the playing title)
 };
 let queue = newQueue();
 let player = null;
@@ -108,7 +111,8 @@ function hideStatus() {
 // ---------- songs, weights, saving ----------
 
 const playable = () => [...state.songs.values()].filter(s => !s.blocked);
-const titleOf = id => state.songs.get(id)?.title ?? id;
+const songInfo = id => state.songs.get(id) ?? state.removedInfo.get(id);
+const titleOf = id => songInfo(id)?.title ?? id;
 
 function updateCounts() {
   queue.setCounts(playsPerLoop(playable()).counts);
@@ -128,7 +132,7 @@ function save() {
     weights[s.id] = s.weight;
     if (s.extra) extras.push(s.id);
   }
-  store.savePlaylist(state.sourceId, { weights, extras });
+  store.savePlaylist(state.sourceId, { weights, extras, removed: [...state.removed] });
   store.saveSettings(settings);
 }
 
@@ -153,13 +157,41 @@ function setWeight(id, value) {
   }, 1000);
 }
 
+function removeSong(id) {
+  const song = state.songs.get(id);
+  if (!song) return;
+  state.songs.delete(id);
+  state.removedInfo.set(id, song);
+  if (state.playlistIds.has(id)) state.removed.add(id);
+  updateCounts(); // a playing song finishes; the loop carries on without it
+  resort();
+  save();
+  render();
+  showStatus(`Removed ${song.title ?? id}.`, 'ok', [{ label: 'Undo', onClick: () => restoreSong(id) }]);
+}
+
+function restoreSong(id) {
+  const song = state.removedInfo.get(id);
+  if (!song || state.songs.has(id)) return;
+  state.removedInfo.delete(id);
+  state.removed.delete(id);
+  state.songs.set(id, song);
+  updateCounts();
+  resort();
+  save();
+  render();
+}
+
 // ---------- loading ----------
 
 function setSource(sourceId, playlistIds) {
   const saved = store.loadPlaylist(sourceId);
   state.sourceId = sourceId;
   state.songs = new Map();
-  for (const id of playlistIds) if (!state.songs.has(id)) addSong(id, saved.weights[id] ?? 1, false);
+  state.playlistIds = new Set(playlistIds);
+  state.removed = new Set(saved.removed.filter(id => state.playlistIds.has(id)));
+  state.removedInfo = new Map();
+  for (const id of playlistIds) if (!state.songs.has(id) && !state.removed.has(id)) addSong(id, saved.weights[id] ?? 1, false);
   for (const id of saved.extras) if (!state.songs.has(id)) addSong(id, saved.weights[id] ?? 1, true);
   settings.lastSource = { type: sourceId === MINE ? 'mine' : 'playlist', id: sourceId };
   crewView.apply(crew.endPlay());
@@ -230,7 +262,12 @@ async function addVideo(videoId) {
     setSource(MINE, []);
   }
   if (state.songs.has(videoId)) return showStatus('That song is already in the list.');
-  addSong(videoId, 1, true);
+  if (state.removedInfo.has(videoId)) {
+    restoreSong(videoId);
+    return showStatus(`Added ${titleOf(videoId)} back.`, 'ok');
+  }
+  state.removed.delete(videoId);
+  addSong(videoId, 1, !state.playlistIds.has(videoId));
   updateCounts();
   if (!queue.current) cueFirstSong();
   resort();
@@ -368,7 +405,7 @@ function render() {
   $('plOwner').textContent = state.owner ? `by ${state.owner}` : '';
   $('listMeta').textContent = state.songs.size ? `${state.songs.size} songs · ${length} plays per loop` : '';
 
-  const current = queue.current ? state.songs.get(queue.current) : null;
+  const current = queue.current ? songInfo(queue.current) : null;
   renderPlayer(playerEls, {
     title: current ? (current.title ?? current.id) : 'Nothing playing',
     author: current?.author ?? '',
@@ -386,7 +423,7 @@ function render() {
 
 // ---------- events ----------
 
-setupSongList($('songs'), { onPlayNow: playNow, onWeight: setWeight });
+setupSongList($('songs'), { onPlayNow: playNow, onWeight: setWeight, onRemove: removeSong });
 setupEndModeButtons($('endMode'), mode => {
   queue.endMode = mode;
   settings.endMode = mode;
