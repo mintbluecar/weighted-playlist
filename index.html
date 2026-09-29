@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Heavy Rotation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <h1 class="brand"><span class="heavy">heavy</span> <span class="light">rotation</span></h1>
+      <p class="tagline">Give your favourites more airtime. Turn up the songs you love, and they come around more often while the rest of the playlist stays in the mix.</p>
+    </div>
+    <form class="load" id="loadForm">
+      <input class="field" id="plLink" placeholder="Paste a YouTube playlist or video link" aria-label="YouTube playlist or video link" autocomplete="off">
+      <button class="btn primary" id="loadBtn" type="submit">Load</button>
+    </form>
+  </header>
+  <div class="status" id="status" role="status" hidden></div>
+  <p class="storage-note" id="storageNote" hidden>This browser isn't saving data for this page, so your weights won't be remembered next time.</p>
+
+  <div class="layout">
+    <div class="left">
+      <section class="player" aria-label="Player">
+        <div class="video">
+          <div id="ytPlayer"></div>
+          <div class="video-empty" id="videoEmpty">Paste a playlist link above, then press play.</div>
+        </div>
+        <div class="pbody">
+          <div class="now">
+            <div><div class="t" id="nowTitle">Nothing playing</div><div class="c" id="nowChan"></div></div>
+            <div class="roundpos" id="loopPos"></div>
+          </div>
+          <div class="controls">
+            <button class="ctl" id="prevBtn" type="button" aria-label="Previous"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+            <button class="ctl play" id="playBtn" type="button" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" d="M8 5v14l11-7z"/></svg></button>
+            <button class="ctl" id="nextBtn" type="button" aria-label="Next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+            <div class="endmode">
+              <div class="seg" id="endMode" role="group" aria-label="When the loop ends">
+                <button type="button" data-mode="shuffle" aria-pressed="true" aria-label="New shuffle" data-tip="New shuffle each loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+                <button type="button" data-mode="same" aria-pressed="false" aria-label="Same order" data-tip="Repeat the same order"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button>
+                <button type="button" data-mode="stop" aria-pressed="false" aria-label="Stop" data-tip="Stop after this loop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+              </div>
+            </div>
+          </div>
+          <div class="upnext" id="upNext" hidden></div>
+        </div>
+      </section>
+
+      <section class="pen" aria-label="The crew">
+        <div class="penhead"><h3>The crew</h3><span class="count" id="penCount"></span></div>
+        <div class="yard" id="yard"><div class="empty" id="yardEmpty">Press play and your songs show up here.</div></div>
+      </section>
+    </div>
+
+    <section class="list" aria-label="Songs">
+      <div class="lhead">
+        <div><h2 id="plName">No playlist loaded</h2><div class="owner" id="plOwner"></div></div>
+        <div class="meta"><span id="listMeta"></span>
+          <span class="wlabel">Weight <button type="button" class="info" id="infoBtn" aria-label="What weight means" aria-describedby="infoTip" aria-expanded="false">i</button><span class="infotip" id="infoTip" role="tooltip">The heavier the weight, the more often a song comes around.</span></span>
+        </div>
+      </div>
+      <ol class="songs" id="songs"></ol>
+      <form class="add" id="addForm">
+        <input class="field" id="addLink" placeholder="Add a single YouTube video link" aria-label="Add a single YouTube video link" autocomplete="off">
+        <button class="btn" type="submit">Add</button>
+      </form>
+    </section>
+  </div>
+
+  <footer class="site-footer">
+    made with love by twitter user <a href="https://x.com/mintbluetoyota" target="_blank" rel="noopener">@mintbluetoyota</a>.<br>
+    creatures by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a>.
+  </footer>
+</div>
+</body>
+</html>
