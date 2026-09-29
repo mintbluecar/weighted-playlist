@@ -81,6 +81,7 @@ function createRow(id) {
   input.inputMode = 'numeric';
   input.id = `w-${id}`;
   input.dataset.role = 'weight';
+  input.title = 'Weight: higher plays more often';
   const inc = el('button', null, '+');
   inc.type = 'button';
   inc.dataset.role = 'inc';
