@@ -95,7 +95,7 @@ function createRow(id) {
   const menu = el('div', 'menu');
   menu.setAttribute('role', 'menu');
   menu.hidden = true;
-  for (const [role, label] of [['queue', 'Add to queue'], ['remove', 'Remove from playlist']]) {
+  for (const [role, label] of [['queue', 'Add to queue'], ['remove', 'Remove from this list']]) {
     const item = el('button', null, label);
     item.type = 'button';
     item.dataset.role = role;

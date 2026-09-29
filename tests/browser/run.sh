@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/../.." || exit 1
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT=8765
-SCENARIOS=${*:-load-race failed-load typed-weight added-note-hides dismiss-note cued-after-load row-thumbnail remove-song removed-stays-removed readd-removed queue-box queue-move-jump add-to-queue collapse-pen}
+SCENARIOS=${*:-load-race failed-load typed-weight added-note-hides dismiss-note cued-after-load row-thumbnail remove-song removed-stays-removed readd-removed queue-box queue-move-jump add-to-queue collapse-pen merge-playlist already-in-list startup-failed-source manage-link}
 
 python3 -m http.server $PORT >/dev/null 2>&1 &
 SERVER=$!

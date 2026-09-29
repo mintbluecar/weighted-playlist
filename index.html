@@ -36,6 +36,7 @@
       <section class="player" aria-label="Player">
         <div class="video">
           <div id="ytPlayer"></div>
+          <div id="ytReader" aria-hidden="true"></div>
           <div class="video-empty" id="videoEmpty">Paste a playlist link above, then press play.</div>
         </div>
         <div class="pbody">
@@ -65,14 +66,17 @@
 
     <section class="list" aria-label="Songs">
       <div class="lhead">
-        <div><h2 id="plName">No playlist loaded</h2><div class="owner" id="plOwner"></div></div>
+        <div class="lhead-title">
+          <div><h2 id="plName">No playlist loaded</h2><div class="owner" id="plOwner"></div></div>
+          <a class="manage-link" href="manage.html" aria-label="Manage playlists" data-tip="Manage playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2.6M12 18.4V21M3 12h2.6M18.4 12H21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9"/></svg></a>
+        </div>
         <div class="meta"><span id="listMeta"></span>
           <span class="wlabel">Weight <button type="button" class="info" id="infoBtn" aria-label="What weight means" aria-describedby="infoTip" aria-expanded="false">i</button><span class="infotip" id="infoTip" role="tooltip">The heavier the weight, the more often a song comes around.</span></span>
         </div>
       </div>
       <ol class="songs" id="songs"></ol>
       <form class="add" id="addForm">
-        <input class="field" id="addLink" placeholder="Add a single YouTube video link" aria-label="Add a single YouTube video link" autocomplete="off">
+        <input class="field" id="addLink" placeholder="Add a song to this list (your YouTube playlist won't change)" aria-label="Add a single YouTube video link to this list" autocomplete="off">
         <button class="btn" type="submit">Add</button>
       </form>
     </section>

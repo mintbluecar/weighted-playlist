@@ -53,40 +53,43 @@ localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playli
 const html = await (await realFetch('/index.html')).text();
 document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
 const $ = id => document.getElementById(id);
+const saved = () => JSON.parse(localStorage.getItem('hr:rotation'));
 function submitLink(link) {
   $('plLink').value = link;
   $('loadForm').requestSubmit();
 }
 
 const scenarios = {
-  // A quick second load must not save the first playlist with the second playlist's songs.
+  // A second playlist pasted while the first is still loading: both are read in turn and merged.
   async 'load-race'() {
     cueDelay[A] = 400;               // the startup load of A is slow...
     await import('/app.js');
     await wait(100);
     submitLink(`https://www.youtube.com/playlist?list=${B}`); // ...and B is loaded meanwhile
     await wait(2000);
-    const savedA = JSON.parse(localStorage.getItem(`hr:playlist:${A}`));
+    const rot = saved();
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort();
     return {
-      pass: savedA.weights[A1] === 5 && $('plName').textContent === `Title ${B}`,
-      savedA, shown: $('plName').textContent,
+      pass: rot.weights[A1] === 5 && rot.sources.join() === [A, B].join()
+        && ids.join() === [A1, A2, B1].join() && $('plName').textContent === `Title ${A} + Title ${B}`,
+      rot, ids, shown: $('plName').textContent,
     };
   },
 
-  // A failed load while a song plays must bring the song back instead of leaving a dead player.
+  // A playlist that can't be read while a song plays: error shown, song not interrupted, list unchanged.
   async 'failed-load'() {
     await import('/app.js');
-    await wait(300);
+    await wait(800);
     $('playBtn').click();
     await wait(300);
-    const playing = calls.cueVideoById.at(-1);   // Play starts the song that was waiting in the player
     const loadsBefore = calls.loadVideoById.length;
+    const titleBefore = $('nowTitle').textContent;
     submitLink('https://www.youtube.com/playlist?list=PLXXXX');
     await wait(12000);                // listPlaylist gives up after 10 s
     return {
-      pass: calls.loadVideoById.length === loadsBefore + 1 && calls.loadVideoById.at(-1) === playing
-        && $('status').classList.contains('err'),
-      loads: calls.loadVideoById, status: $('status').textContent,
+      pass: calls.loadVideoById.length === loadsBefore && $('nowTitle').textContent === titleBefore
+        && $('status').classList.contains('err') && saved().sources.join() === A,
+      loads: calls.loadVideoById, status: $('status').textContent, sources: saved().sources,
     };
   },
 
@@ -142,15 +145,15 @@ const scenarios = {
     document.querySelector(`.song[data-id="${A2}"] [data-role="remove"]`).click();
     await wait(100);
     const goneFromList = !document.querySelector(`.song[data-id="${A2}"]`);
-    const savedRemoved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
+    const savedRemoved = saved().removed;
     const undo = [...$('status').querySelectorAll('button')].find(b => b.textContent === 'Undo');
     const note = $('status').textContent;
     undo?.click();
     await wait(100);
     const back = !!document.querySelector(`.song[data-id="${A2}"]`);
-    const removedAfterUndo = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
+    const removedAfterUndo = saved().removed;
     return {
-      pass: menuHiddenAtFirst && goneFromList && savedRemoved.includes(A2) && note.startsWith(`Removed Title ${A2}.`) && back && removedAfterUndo.length === 0,
+      pass: menuHiddenAtFirst && goneFromList && savedRemoved.includes(A2) && note.startsWith(`Removed Title ${A2}. Still on YouTube.`) && back && removedAfterUndo.length === 0,
       goneFromList, savedRemoved, note, back, removedAfterUndo,
     };
   },
@@ -172,9 +175,9 @@ const scenarios = {
     $('addLink').value = `https://youtu.be/${A2}`;
     $('addForm').requestSubmit();
     await wait(200);
-    const saved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`));
+    const rot = saved();
     const back = !!document.querySelector(`.song[data-id="${A2}"]`);
-    return { pass: back && saved.removed.length === 0 && !saved.extras.includes(A2), back, saved };
+    return { pass: back && rot.removed.length === 0 && !rot.extras.includes(A2), back, rot };
   },
 
   // The queue box lists what plays next, with a divider where the next loop starts.
@@ -243,6 +246,60 @@ const scenarios = {
     return { pass: collapsed && saved === true && expanded, collapsed, saved, expanded };
   },
 
+  // Pasting another playlist adds its songs without interrupting the song that's playing.
+  async 'merge-playlist'() {
+    await import('/app.js');
+    await wait(800);
+    $('playBtn').click();
+    await wait(300);
+    const loadsBefore = calls.loadVideoById.length;
+    const cuesBefore = calls.cueVideoById.length;
+    submitLink(`https://www.youtube.com/playlist?list=${B}`);
+    await wait(1000);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort();
+    return {
+      pass: ids.join() === [A1, A2, B1].join() && saved().sources.join() === [A, B].join()
+        && calls.loadVideoById.length === loadsBefore && calls.cueVideoById.length === cuesBefore
+        && $('status').textContent.startsWith(`Added Title ${B} (1 new song).`)
+        && $('plName').textContent === `Title ${A} + Title ${B}`,
+      ids, status: $('status').textContent, heading: $('plName').textContent,
+    };
+  },
+
+  // Pasting a playlist that's already in the list says so.
+  async 'already-in-list'() {
+    await import('/app.js');
+    await wait(800);
+    submitLink(`https://www.youtube.com/playlist?list=${A}`);
+    await wait(200);
+    return { pass: $('status').textContent.startsWith('That playlist is already in your list.'), status: $('status').textContent };
+  },
+
+  // A playlist that fails at startup keeps its songs' settings and doesn't remove songs shared with another playlist.
+  async 'startup-failed-source'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({
+      sources: [A, 'PLXXXX'], weights: { [A1]: 5 }, extras: [], removed: ['zzzzzzzzzz1'], sourceInfo: {},
+    }));
+    await import('/app.js');
+    await wait(12500);
+    const rot = saved();
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort();
+    return {
+      pass: ids.join() === [A1, A2].join() && rot.sources.join() === [A, 'PLXXXX'].join()
+        && rot.removed.includes('zzzzzzzzzz1') && rot.sourceInfo.PLXXXX?.status === 'error' && rot.weights[A1] === 5
+        && $('status').classList.contains('err'),
+      ids, rot, status: $('status').textContent,
+    };
+  },
+
+  // The header's settings icon links to the manage page.
+  async 'manage-link'() {
+    await import('/app.js');
+    await wait(300);
+    const link = document.querySelector('.manage-link');
+    return { pass: link?.getAttribute('href') === 'manage.html' && link.getAttribute('aria-label') === 'Manage playlists', href: link?.getAttribute('href') ?? null };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');
@@ -264,8 +321,8 @@ const scenarios = {
     input.value = '150';
     input.dispatchEvent(new Event('change', { bubbles: true }));
     await wait(100);
-    const saved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).weights[A1];
-    return { pass: input.value === '99' && saved === 99, shown: input.value, saved };
+    const stored = saved().weights[A1];
+    return { pass: input.value === '99' && stored === 99, shown: input.value, stored };
   },
 };
 
