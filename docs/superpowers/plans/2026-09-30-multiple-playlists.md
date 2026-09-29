@@ -906,7 +906,7 @@ Expected: both `"pass":false` (manage.html does not exist).
   <a class="back" href="./">← Back to player</a>
   <header class="top">
     <div class="intro">
-      <h1 class="brand" aria-label="Loopsided"><span class="loop">loop</span><span class="sided">sided</span></h1>
+      <h1 class="brand"><a href="./" aria-label="Loopsided, back to player"><span class="loop">loop</span><span class="sided">sided</span></a></h1>
       <p class="tagline">Manage the playlists in your list. Changes here never change YouTube.</p>
     </div>
     <form class="load" id="addForm">
@@ -1159,6 +1159,7 @@ fetchVideoInfos(rotation.extras, {
 ```css
 /* manage page */
 .manage{max-width:760px}
+.brand a{color:inherit;text-decoration:none}
 .manage .back{justify-self:start;font-size:14px;color:var(--ink-2);text-decoration:none;padding:4px 0}
 .manage .back:hover{color:var(--accent)}
 ol.sources{list-style:none;margin:0;padding:0}
