@@ -58,13 +58,19 @@ export class Queue {
   setCounts(counts) {
     this.counts = new Map([...counts].filter(([, plays]) => plays > 0));
     this.nextLoopCache = null;
-    if (this.current && this.counts.has(this.current)) {
-      this.loop = this.#loopStartingWith(this.current);
-      this.pos = 0;
-    } else {
+    if (this.pos < 0) {
       this.loop = this.#build(this.counts, this.current);
-      this.pos = -1;
+      return;
     }
+    // Keep what already played this loop; rebuild only the rest from the new counts.
+    const played = this.loop.slice(0, this.pos + 1);
+    const rest = new Map(this.counts);
+    for (const id of played) {
+      const plays = rest.get(id) ?? 0;
+      if (plays > 1) rest.set(id, plays - 1);
+      else rest.delete(id);
+    }
+    this.loop = [...played, ...this.#build(rest, this.loop[this.pos])];
   }
 
   start() {
@@ -85,7 +91,7 @@ export class Queue {
     if (this.pos >= this.loop.length) {
       this.loop = this.endMode === 'same' ? this.loop : this.#takeNextLoop();
       this.loopNumber++;
-      if (this.endMode === 'stop') {
+      if (this.endMode === 'stop' || !this.loop.length) {
         this.pos = -1;
         this.current = null;
         return null;

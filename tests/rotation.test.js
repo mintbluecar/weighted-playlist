@@ -128,3 +128,24 @@ test('an empty queue returns null', () => {
   assert.equal(q.next(), null);
   assert.deepEqual(q.upcoming(4), []);
 });
+
+test('a weight change mid-loop keeps what already played and rebuilds only the rest', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1], ['d', 1]]);
+  const first = q.start();
+  const second = q.next();
+  q.setCounts(new Map([['a', 1], ['b', 1], ['c', 1], ['d', 2]]));
+  assert.equal(q.current, second);
+  assert.equal(q.position, 2);
+  assert.equal(q.loopLength, 5);
+  const rest = [q.next(), q.next(), q.next()];
+  assert.ok(!rest.includes(first) && !rest.includes(second), `replayed a song already heard: ${rest}`);
+  assert.deepEqual(tally([first, second, ...rest]), new Map([['a', 1], ['b', 1], ['c', 1], ['d', 2]]));
+});
+
+test('if every song is removed mid-loop, next returns null', () => {
+  const q = queueWith([['a', 1], ['b', 1]]);
+  q.start();
+  q.setCounts(new Map());
+  assert.equal(q.next(), null);
+  assert.equal(q.current, null);
+});
