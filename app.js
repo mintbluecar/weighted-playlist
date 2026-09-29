@@ -10,6 +10,7 @@ import { setupEndModeButtons, renderPlayer } from './player-view.js';
 import { setupQueue, renderQueue } from './queue-view.js';
 import { setupManage } from './manage-view.js';
 import { songRows, listMetaText, queueRows, manageData, failedMessage } from './view-models.js';
+import { songSet, withItem, withoutItem } from './library.js';
 import { createNotice } from './dom.js';
 import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
@@ -37,8 +38,7 @@ const state = {
   order: [],                    // videoIds in display order
   playerState: STATE.UNSTARTED,
   playStarted: false,           // has the current queue item started playing yet
-  playlistIds: new Set(),       // songs that came from the YouTube playlist itself
-  removed: new Set(),           // playlist songs removed here; kept out when playlists are read again
+  playlistIds: new Set(),       // songs in the playlists read so far (from songSet; not saved)
   removedInfo: new Map(),       // videoId -> song removed this session (for Undo and the playing title)
 };
 let queue = newQueue();
@@ -94,18 +94,18 @@ function resort() {
     .map(s => s.id);
 }
 
+// `rotation` is the only record of playlists, added songs, removed songs and weights: every change
+// writes there first, and state.songs is rebuilt or updated from it, never copied back.
 function save() {
-  for (const s of state.songs.values()) rotation.weights[s.id] = s.weight; // weights are never dropped
-  rotation.extras = [...state.songs.values()].filter(s => s.extra).map(s => s.id);
-  rotation.removed = [...state.removed];
   store.saveRotation(rotation);
-  store.saveSettings(settings);
 }
 
+const weightOf = id => rotation.weights[id] ?? 1;
+
 // A new song object, named from remembered titles when we have them.
-function newSong(id, weight, extra) {
+function newSong(id, extra) {
   const known = titleCache[id];
-  return { id, title: known?.title ?? null, author: known?.author ?? '', thumbnail: known?.thumbnail ?? '', weight, extra, blocked: false };
+  return { id, title: known?.title ?? null, author: known?.author ?? '', thumbnail: known?.thumbnail ?? '', weight: weightOf(id), extra, blocked: false };
 }
 
 // Store a looked-up title on the song and remember it for next time.
@@ -130,14 +130,15 @@ function listChanged({ cue = false, sort = true } = {}) {
   render();
 }
 
-function addSong(id, weight, extra) {
-  state.songs.set(id, newSong(id, weight, extra));
+function addSong(id, extra) {
+  state.songs.set(id, newSong(id, extra));
 }
 
 function setWeight(id, value) {
   const song = state.songs.get(id);
   if (!song) return;
-  song.weight = clampWeight(value);
+  rotation.weights[id] = clampWeight(value); // weights are never dropped
+  song.weight = weightOf(id);
   listChanged({ sort: false });
   // Re-sort about a second after the last change, so rows don't jump while tapping.
   clearTimeout(resortTimer);
@@ -154,7 +155,8 @@ function removeSong(id, { quiet = false } = {}) {
   if (!song) return;
   state.songs.delete(id);
   state.removedInfo.set(id, song);
-  if (state.playlistIds.has(id)) state.removed.add(id);
+  if (state.playlistIds.has(id)) rotation.removed = withItem(rotation.removed, id); // kept out when read again
+  rotation.extras = withoutItem(rotation.extras, id);
   listChanged(); // a playing song finishes; the loop carries on without it
   if (!quiet) showStatus(`Removed ${song.title ?? id}. Still on YouTube.`, 'ok', [{ label: 'Undo', onClick: () => restoreSong(id) }]);
 }
@@ -163,8 +165,9 @@ function restoreSong(id) {
   const song = state.removedInfo.get(id);
   if (!song || state.songs.has(id)) return;
   state.removedInfo.delete(id);
-  state.removed.delete(id);
-  song.extra = !state.playlistIds.has(id);
+  rotation.removed = withoutItem(rotation.removed, id);
+  song.extra = !state.playlistIds.has(id); // no playlist in the list holds it: keep it as added here
+  if (song.extra) rotation.extras = withItem(rotation.extras, id);
   state.songs.set(id, song);
   listChanged();
 }
@@ -212,23 +215,19 @@ async function refreshSourceTitle(listId) {
 // Work out the song list from the rotation: every playlist's songs (minus songs removed here),
 // plus songs added here. Songs that leave keep their details, so a playing song keeps its title.
 function rebuildSongs() {
-  state.playlistIds = new Set(rotation.sources.flatMap(id => state.sourceSongs.get(id) ?? []));
-  state.removed = new Set(rotation.removed);
-  const extras = new Set(rotation.extras);
-  const wanted = [];
-  for (const id of state.playlistIds) if (!state.removed.has(id)) wanted.push(id);
-  for (const id of rotation.extras) if (!state.playlistIds.has(id)) wanted.push(id);
-
+  const wanted = songSet(rotation, state.sourceSongs);
+  state.playlistIds = wanted.playlistIds;
   const songs = new Map();
   const newIds = [];
-  for (const id of wanted) {
+  for (const { id, extra } of wanted.songs) {
     const song = state.songs.get(id) ?? state.removedInfo.get(id);
     if (song) {
-      song.extra = extras.has(id);
+      song.extra = extra;
+      song.weight = weightOf(id);
       songs.set(id, song);
       state.removedInfo.delete(id);
     } else {
-      songs.set(id, newSong(id, rotation.weights[id] ?? 1, extras.has(id)));
+      songs.set(id, newSong(id, extra));
       newIds.push(id);
     }
   }
@@ -380,14 +379,14 @@ const manage = setupManage($('manageDialog'), {
 
 async function addVideo(videoId) {
   if (state.songs.has(videoId)) return showStatus('That song is already in the list.');
-  if (state.removedInfo.has(videoId) && state.removed.has(videoId)) {
+  if (state.removedInfo.has(videoId) && rotation.removed.includes(videoId)) {
     restoreSong(videoId);
     return showStatus(`Added ${titleOf(videoId)} back.`, 'ok');
   }
-  state.removed.delete(videoId);
+  rotation.removed = withoutItem(rotation.removed, videoId);
   const inPlaylist = state.playlistIds.has(videoId);
-  if (!inPlaylist) rotation.extras = [...rotation.extras, videoId];
-  addSong(videoId, rotation.weights[videoId] ?? 1, !inPlaylist);
+  if (!inPlaylist) rotation.extras = withItem(rotation.extras, videoId);
+  addSong(videoId, !inPlaylist);
   listChanged({ cue: true });
   showStatus('Added to your list, weight 1.', 'ok');
   if (!titlesToLookUp([videoId], titleCache).length) return;

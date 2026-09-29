@@ -10,13 +10,20 @@ Mockup: [`docs/mockup.html`](../../mockup.html) (also published as a private art
 
 A personal web page that plays a YouTube playlist with **weights**, so favourite songs come around more often than the rest. YouTube playlists can't hold the same video twice, so there is no way to hear favourites more often there. Heavy Rotation fills that gap.
 
-It is for the owner's own listening, in a desktop or phone browser. Every play is an ordinary play in YouTube's embedded player at normal speed. The app does nothing to influence view counts, ads or YouTube's playback rules.
+It is for the owner's own listening, in a desktop or phone browser. The owner is a real listener, and **each play should count as a real YouTube view**; if plays don't count, the app has no point. Every play is an ordinary play in YouTube's embedded player at normal speed, started by the owner's listening session. The app never fakes engagement: no hidden or muted playback (the hidden reader player only reads playlists and never plays), no multiple tabs, no simulated clicks, and nothing that plays when the owner isn't listening. It does not touch ads or work around YouTube's playback rules.
+
+**Open question: do auto-advanced plays count?** Two official sources disagree:
+- The [IFrame Player API reference](https://developers.google.com/youtube/iframe_api_reference) says a playback only counts toward a video's official view count if it is started with the player's native play button. By that rule, plays started by `loadVideoById` or `playVideo` (auto-advance, the app's own Play button) would not count.
+- YouTube Help, [How engagement metrics are counted](https://support.google.com/youtube/answer/2991785), says that from 24 August 2026 views are counted the moment a video starts to play, in all formats. It doesn't mention embeds or autoplay.
+
+To settle it, run the [view count test](../../view-count-test.md): three unlisted test videos, each started a different way, with YouTube Studio's realtime view open. Playback must stay hands-free, so tap-to-play (starting each song with YouTube's own play button) is ruled out. If auto-advanced plays don't count, the fallback is handing the loop to youtube.com to play (see Possible later add-ons).
 
 ### Success looks like
 
 - Paste a playlist link, set a few weights, press play, and it keeps playing with favourites coming up in proportion to their weight.
 - Weights are remembered for that playlist the next time the page opens.
 - It works and is comfortable to use on a phone browser.
+- Each play counts as a view on YouTube.
 
 ## Scope
 
@@ -53,22 +60,27 @@ It is for the owner's own listening, in a desktop or phone browser. Every play i
 
 ```
 weighted-playlist/
-  index.html      page layout
-  styles.css      responsive layout and themes
-  app.js          wires everything together and updates the screen
-  links.js        works out what a pasted link points to
-  weights.js      weights → plays per loop and plain-language frequency
-  rotation.js     builds each loop: plays → spaced-out order
-  storage.js      saves and loads settings in the browser
-  youtube.js      wraps YouTube's IFrame Player API and oEmbed title lookups
-  crew.js         crew rules: play counting, hatch/grow/revert, pen limit (no DOM)
-  crew-view.js    draws the pen and moves the creatures
-  assets/kenney/  the 47 creature SVGs used from Kenney's New Platformer Pack, plus its License.txt
-  tests/          automated tests for links.js, weights.js, rotation.js and crew.js
-  docs/           this spec and the mockup
+  index.html        the page (player, crew, song list, manage modal)
+  styles.css        layout, themes, one shared tooltip style
+  app.js            wiring: startup, loading playlists, actions, events, drawing
+  library.js        which songs the list holds, from the saved rotation (pure)
+  view-models.js    what each part of the screen shows, from plain data (pure)
+  links.js          what a pasted link points to (pure)
+  weights.js        weights → plays per loop, frequency wording (pure)
+  rotation.js       builds each loop and the play queue (pure)
+  storage.js        saving the rotation, titles and settings (guarded)
+  youtube.js        the only file that talks to YouTube (player, hidden reader, oEmbed)
+  crew.js           crew rules: counting, hatching, growing, reverting (pure)
+  crew-view.js      draws the pen and moves the creatures
+  songs-view.js, queue-view.js, player-view.js, manage-view.js   the screen parts
+  dom.js            shared DOM helpers and the note box
+  assets/kenney/    the 47 creature SVGs used, plus License.txt
+  tests/            node --test unit tests; tests/browser/ runs app.js against a fake YouTube player
 ```
 
-`links.js`, `weights.js`, `rotation.js` and `crew.js` are pure logic with no browser or YouTube dependencies, so they can be tested with Node's built-in test runner (`node --test`). `youtube.js` is the only file that talks to YouTube, so a later PiP or export feature touches it and `app.js` only.
+- **One record:** the saved rotation (`hr:rotation`) is the only record of playlists, added songs, removed songs and weights. Every change writes there first; the on-screen song list is rebuilt or updated from it, never copied back.
+- **Every change to the list** goes through `listChanged()` in app.js (recount the loop, re-sort, save, redraw).
+- **Pure modules** (library, view-models, links, weights, rotation, crew) have unit tests; the browser harness covers app.js and the views.
 
 ## Links
 
@@ -176,7 +188,7 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 
 - After a playlist loads (or the first video is added), the first song of the loop waits in the player, paused (`cueVideoById`), so Play starts it. The video box says "Paste a playlist link above, then press play." only when nothing is loaded, and "Press play to start." when a list is loaded but nothing is waiting.
 - **Play/pause**, **next**, **previous** (goes back through what actually played), **play now** (tap a song's title).
-- Advances automatically when a song ends (player state `ENDED`).
+- Advances automatically when a song ends (player state `ENDED`). Whether these plays count as views is still open (see Purpose).
 - **Up next** is a box listing the next 10 plays (thumbnail, title, channel), scrolling inside itself, with a "New loop" divider where the next loop starts and "Playback stops here." in stop mode. It sits under the player (in the pinned left column on desktop; below the pinned player on phones).
   - **▲▼** swap a song with its neighbour, within its own loop only (so each loop keeps its weighted counts). A manual order is replaced when the rest of the loop is rebuilt (weight change, removal, play now).
   - **Tap a queued song** to play it now: it moves to the top and starts, interrupting the current song; the songs it passed stay in the queue. A song from the next loop moves into this loop, and the next loop plays it one time fewer.
