@@ -125,8 +125,6 @@ export function createStore(backend) {
         extras: strings(data.extras),
         removed: strings(data.removed),
         sourceInfo,
-        // When the manage page last asked the player to sync with YouTube.
-        ...(Number.isFinite(data.syncAt) && data.syncAt > 0 ? { syncAt: data.syncAt } : {}),
       };
     },
 

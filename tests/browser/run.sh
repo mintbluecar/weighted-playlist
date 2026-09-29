@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/../.." || exit 1
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT=8765
-SCENARIOS=${*:-load-race failed-load typed-weight added-note-hides dismiss-note cued-after-load row-thumbnail remove-song removed-stays-removed readd-removed queue-box queue-move-jump add-to-queue collapse-pen merge-playlist already-in-list startup-failed-source settings-link manage-remove-undo manage-add-start-over rotation-other-tab add-video-before-load other-tab-before-ready paste-during-other-tab-edit readd-after-playlist-removed failed-not-reread titles-remembered manage-remembered-titles manage-sync sync-other-tab loading-state pen-visitors}
+SCENARIOS=${*:-$(grep -o "^  async '[^']*'" tests/browser/app-harness.html | sed "s/^  async '//; s/'$//")}
 
 python3 -m http.server $PORT >/dev/null 2>&1 &
 SERVER=$!

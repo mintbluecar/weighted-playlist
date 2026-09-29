@@ -153,12 +153,3 @@ test('titlesToLookUp picks songs with no title or one older than a day', () => {
   const cache = { fresh: { title: 'F', at: now - 1000 }, old: { title: 'O', at: now - DAY_MS - 1 } };
   assert.deepEqual(titlesToLookUp(['fresh', 'old', 'missing'], cache, now), ['old', 'missing']);
 });
-
-test('a sync request time is kept with the rotation', () => {
-  const backend = memoryBackend();
-  const store = createStore(backend);
-  store.saveRotation({ sources: ['PL1'], weights: {}, extras: [], removed: [], sourceInfo: {}, syncAt: 5000 });
-  assert.equal(store.loadRotation().syncAt, 5000);
-  backend.setItem('hr:rotation', JSON.stringify({ sources: [], syncAt: 'soon' }));
-  assert.equal(store.loadRotation().syncAt, undefined);
-});

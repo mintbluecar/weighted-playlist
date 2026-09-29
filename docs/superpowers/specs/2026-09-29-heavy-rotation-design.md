@@ -101,7 +101,7 @@ The top bar accepts playlist and video links. The bottom box in the song list ac
 5. The rotation (all its playlists) reopens automatically next time.
 6. Playlists are read with a separate, hidden YouTube player, so reading or adding a playlist never interrupts the song that is playing.
 
-## Multiple playlists and the manage page
+## Multiple playlists and managing them
 
 The list is a **rotation**: one or more YouTube playlists plus single videos added here. Changes only ever flow from YouTube into Loopsided; nothing here changes YouTube.
 
@@ -109,22 +109,22 @@ The list is a **rotation**: one or more YouTube playlists plus single videos add
 
 - Pasting a playlist link in the top bar **adds** its songs to the rotation at their saved weight (or 1), skipping songs already in the list. Nothing is interrupted: the playing song keeps playing and the rest of the loop is rebuilt. Note: "Added <playlist title> (N new songs)."
 - List header title: no playlists → "My rotation"; one → its title (with "by <owner>"); two → "A + B"; three or more → "A + N more". When single videos were added here, the owner line adds "+ K added here".
-- A **⚙ settings icon** beside the header opens the manage page; tooltip **"Manage playlists"**.
+- A **⚙ settings icon** beside the header opens the **Manage playlists** modal; tooltip **"Manage playlists"**.
 - **Loading state:** while the playlists are being read (including waiting for YouTube's player at startup, and after a Sync), the song list shows a spinner and "Loading your playlists from YouTube…". Remembered songs are still shown underneath.
 - Wording that makes the one-way rule clear:
   - Bottom add box placeholder: "Add a song to this list (your YouTube playlist won't change)".
   - Song ⋮ menu: **Remove from this list**; the note reads "Removed <title>. Still on YouTube." with Undo.
-- If the rotation changes in another tab (the manage page), the player re-reads it without interrupting the playing song.
 
-### Manage page (`manage.html`)
+### Manage playlists modal
 
-Same look as the player, with a "← Back to player" link. It needs no YouTube player: it shows what the player page last saved.
+A window over the player (a `<dialog>`), so the song keeps playing and the layout underneath doesn't change. Closes with ×, Escape, or a click outside it. On phones it fills the screen and scrolls inside itself. Changes apply to the player straight away.
 
-- **One card per playlist**: title, owner, song count, and a **Remove** button. Removing shows "Removed <title>." with **Undo**. A playlist that could not be read last time says "Couldn't load last time (private, deleted or a Mix)". Counts are "as of your last visit to the player".
-- **Added here** card: the single videos added in Loopsided, each with a remove button (with Undo).
-- **Add a playlist** box at the top: adds it to the rotation; its title is fetched straight away; its songs appear the next time the player loads (the card says "Songs load when you open the player").
-- **↻ Sync with YouTube** (Playlists card): brings back songs removed here, marks remembered titles out of date, and records `syncAt` so the player re-reads every playlist and looks up every title again (at once if it's open in another tab, otherwise on its next load).
-- **Start over**: clears the rotation (playlists, added songs, removed songs); asks for confirmation on the page first. Weights stay remembered. Settings (end of loop, pen collapsed) are kept.
+- **Add a playlist** box: reads the playlist at once and adds its songs ("Added <title> (N new songs).").
+- **One card per playlist**: title, owner, song count (or "Couldn't load (private, deleted or a Mix)"), and two buttons:
+  - **↻ Sync** (tooltip "Re-read from YouTube and bring back songs you removed from it"): re-reads just that playlist, brings back its songs removed here, and looks up its songs' titles again. The card shows "Syncing with YouTube…" meanwhile. Other playlists and the playing song are untouched.
+  - **Remove**: its songs leave the list at once; note "Removed <title>." with **Undo**.
+- **Added here** card: the single videos added in Loopsided, each with Remove (with Undo). Titles come from remembered titles.
+- **Start over** (red, tooltip "Removes every playlist and added song. Weights are kept."): asks for confirmation ("Clear list" in solid red), then clears the rotation (playlists, added songs, removed songs). Weights, settings and remembered titles are kept.
 
 ### Removing a playlist
 
@@ -265,7 +265,7 @@ A wide, low strip across the top of the page, above the player and the song list
 
 - Weights of 1 are not stored. Weights are never dropped (so they come back when a playlist or song returns).
 - `hr:titles` remembers each song's title, channel, thumbnail and lookup time (newest 2,000 kept). Remembered titles show straight away on the player and the manage page; a title is looked up again only if it isn't remembered or is over a day old. Lookups run 8 at a time. (Measured on localhost: a playlist read took 0.25 s, while 9 title lookups took 2.5 s, so titles were what made startup feel slow.)
-- `sourceInfo` is written by the player page each time it reads the playlists (`status`: `ok` or `error`). The manage page also writes a new playlist's title and owner when it adds one, so the card shows its name straight away.
+- `sourceInfo` is written by the player each time it reads a playlist (`count`, `status`: `ok` or `error`) and when it fetches the playlist's title and owner.
 - **Migration:** on first load without `hr:rotation`, the old `hr:settings.lastSource` and its `hr:playlist:<id>` (or `hr:playlist:mine`) entry become the rotation, so no weights are lost. Old keys are left in place.
 - Every read and write is wrapped in `try/catch`. If storage is unavailable, everything still works for the session and a small note says weights won't be remembered.
 

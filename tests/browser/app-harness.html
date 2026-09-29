@@ -53,8 +53,7 @@ localStorage.setItem(`hr:playlist:${A}`, JSON.stringify({ weights: { [A1]: 5 }, 
 localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: A }, endMode: 'shuffle' }));
 
 // ---- the real page ----
-const page = scenario.startsWith('manage-') ? '/manage.html' : '/index.html';
-const html = await (await realFetch(page)).text();
+const html = await (await realFetch('/index.html')).text();
 document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
 const $ = id => document.getElementById(id);
 const saved = () => JSON.parse(localStorage.getItem('hr:rotation'));
@@ -296,82 +295,6 @@ const scenarios = {
     };
   },
 
-  // The header's settings icon links to the manage page.
-  async 'settings-link'() {
-    await import('/app.js');
-    await wait(300);
-    const link = document.querySelector('.manage-link');
-    return { pass: link?.getAttribute('href') === 'manage.html' && link.getAttribute('aria-label') === 'Manage playlists', href: link?.getAttribute('href') ?? null };
-  },
-
-  // Manage page: one card per playlist; a failed one says so; Remove + Undo edit the saved rotation.
-  async 'manage-remove-undo'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({
-      sources: [A, B], weights: { [A1]: 5 }, extras: [], removed: [],
-      sourceInfo: { [A]: { title: 'Road Trip', owner: 'Mara', count: 2, status: 'ok' }, [B]: { title: 'Chill', status: 'error' } },
-    }));
-    await import('/manage.js');
-    await wait(200);
-    const cards = [...document.querySelectorAll('#sources .source')];
-    const texts = cards.map(c => c.textContent);
-    cards[0].querySelector('button').click();
-    await wait(100);
-    const afterRemove = saved().sources;
-    const note = $('status').textContent;
-    [...$('status').querySelectorAll('button')].find(b => b.textContent === 'Undo').click();
-    await wait(100);
-    return {
-      pass: cards.length === 2 && texts[0].includes('Road Trip') && texts[0].includes('2 songs')
-        && texts[1].includes("Couldn't load last time") && afterRemove.join() === B
-        && note.startsWith('Removed Road Trip.') && saved().sources.join() === [A, B].join() && saved().weights[A1] === 5,
-      texts, afterRemove, note, final: saved().sources,
-    };
-  },
-
-  // Manage page: adding a playlist fetches its title; Start over clears the list but keeps weights.
-  async 'manage-add-start-over'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({
-      sources: [A], weights: { [A1]: 5 }, extras: [B1], removed: [], sourceInfo: { [A]: { title: 'Road Trip' } },
-    }));
-    await import('/manage.js');
-    await wait(200);
-    const addedHere = document.querySelectorAll('#extras .source').length;
-    $('addLink').value = `https://www.youtube.com/playlist?list=${C}`;
-    $('addForm').requestSubmit();
-    await wait(200);
-    const afterAdd = saved();
-    const newCard = [...document.querySelectorAll('#sources .source')].at(-1).textContent;
-    $('startOver').click();
-    $('confirmClear').click();
-    await wait(100);
-    const cleared = saved();
-    return {
-      pass: addedHere === 1 && afterAdd.sources.join() === [A, C].join() && afterAdd.sourceInfo[C].title === `Title ${C}`
-        && newCard.includes('Songs load when you open the player')
-        && cleared.sources.length === 0 && cleared.extras.length === 0 && cleared.weights[A1] === 5,
-      addedHere, afterAdd, newCard, cleared,
-    };
-  },
-
-  // Another tab removes the playing song's playlist: the song keeps playing, and its playlist's songs leave the list.
-  async 'rotation-other-tab'() {
-    await import('/app.js');
-    await wait(800);
-    $('playBtn').click();
-    await wait(300);
-    const playing = $('nowTitle').textContent;
-    const loadsBefore = calls.loadVideoById.length;
-    const rot = saved();
-    localStorage.setItem('hr:rotation', JSON.stringify({ ...rot, sources: [] }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(300);
-    return {
-      pass: document.querySelectorAll('.song').length === 0 && $('nowTitle').textContent === playing
-        && calls.loadVideoById.length === loadsBefore && $('plName').textContent === 'No playlist loaded',
-      songs: document.querySelectorAll('.song').length, playing, now: $('nowTitle').textContent,
-    };
-  },
-
   // Adding a video before the playlists finish reading keeps saved added songs and removed songs.
   async 'add-video-before-load'() {
     localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: ['xxxxxxxxxx1'], removed: [A2], sourceInfo: {} }));
@@ -391,60 +314,6 @@ const scenarios = {
     };
   },
 
-  // A manage-page change while the player is still starting up isn't overwritten.
-  async 'other-tab-before-ready'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [], sourceInfo: {} }));
-    readyDelay = 600;
-    await import('/app.js');
-    await wait(100);
-    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [] }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(1500);
-    return { pass: saved().sources.length === 0 && document.querySelectorAll('.song').length === 0, sources: saved().sources };
-  },
-
-  // A manage-page save while a pasted playlist is being read doesn't drop the pasted playlist.
-  async 'paste-during-other-tab-edit'() {
-    await import('/app.js');
-    await wait(800);
-    cueDelay[B] = 600;
-    submitLink(`https://www.youtube.com/playlist?list=${B}`);
-    await wait(100);
-    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [A] }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(1500);
-    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id);
-    return { pass: saved().sources.join() === [A, B].join() && ids.includes(B1), sources: saved().sources, ids };
-  },
-
-  // A song added back after its playlist was removed stays in the list.
-  async 'readd-after-playlist-removed'() {
-    await import('/app.js');
-    await wait(800);
-    const row = document.querySelector(`.song[data-id="${A2}"]`);
-    row.querySelector('[data-role="menu"]').click();
-    row.querySelector('[data-role="remove"]').click();
-    await wait(100);
-    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [] }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(300);
-    $('addLink').value = `https://youtu.be/${A2}`;
-    $('addForm').requestSubmit();
-    await wait(200);
-    return { pass: saved().extras.includes(A2) && !!document.querySelector(`.song[data-id="${A2}"]`), rot: saved() };
-  },
-
-  // A playlist that failed to load isn't re-read on every manage-page change.
-  async 'failed-not-reread'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A, 'PLXXXX'], weights: {}, extras: [], removed: [], sourceInfo: {} }));
-    await import('/app.js');
-    await wait(12500);
-    const before = calls.cuePlaylist.PLXXXX;
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(500);
-    return { pass: before === 1 && calls.cuePlaylist.PLXXXX === 1, before, after: calls.cuePlaylist.PLXXXX };
-  },
-
   // Remembered titles show straight away; fresh ones aren't looked up again; stale ones are.
   async 'titles-remembered'() {
     localStorage.setItem('hr:titles', JSON.stringify({
@@ -459,53 +328,6 @@ const scenarios = {
       pass: titleOf(A1) === 'Remembered A1' && !calls.oembed.includes(A1) && calls.oembed.includes(A2)
         && titleOf(A2) === `Title ${A2}` && stored[A2].title === `Title ${A2}` && stored[A2].at > 0,
       a1: titleOf(A1), a2: titleOf(A2), lookups: calls.oembed,
-    };
-  },
-
-  // Manage page: added songs show remembered titles without looking them up again.
-  async 'manage-remembered-titles'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [], weights: {}, extras: [B1], removed: [], sourceInfo: {} }));
-    localStorage.setItem('hr:titles', JSON.stringify({ [B1]: { title: 'Remembered B1', author: 'Mara', thumbnail: '', at: Date.now() } }));
-    await import('/manage.js');
-    await wait(300);
-    const text = document.querySelector('#extras .source .t')?.textContent;
-    return { pass: text === 'Remembered B1' && !calls.oembed.includes(B1), text, lookups: calls.oembed };
-  },
-
-  // Manage page: Sync brings back removed songs, marks titles out of date, and asks the player to re-read.
-  async 'manage-sync'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [A2], sourceInfo: { [A]: { title: 'Road Trip' } } }));
-    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: Date.now() } }));
-    await import('/manage.js');
-    await wait(200);
-    $('syncBtn').click();
-    await wait(100);
-    const rot = saved();
-    const titles = JSON.parse(localStorage.getItem('hr:titles'));
-    return {
-      pass: rot.removed.length === 0 && rot.syncAt > 0 && titles[A1].at === 0
-        && $('status').textContent.startsWith('Synced with YouTube.'),
-      rot, titles, note: $('status').textContent,
-    };
-  },
-
-  // Player: a sync request from another tab re-reads playlists, brings removed songs back and refreshes titles.
-  async 'sync-other-tab'() {
-    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [A2], sourceInfo: {} }));
-    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: Date.now() } }));
-    await import('/app.js');
-    await wait(800);
-    const hiddenBefore = !document.querySelector(`.song[data-id="${A2}"]`);
-    const readsBefore = calls.cuePlaylist[A];
-    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), removed: [], syncAt: Date.now() }));
-    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: 0 } }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
-    await wait(800);
-    const title = document.querySelector(`.song[data-id="${A1}"] .t`)?.textContent;
-    return {
-      pass: hiddenBefore && !!document.querySelector(`.song[data-id="${A2}"]`) && calls.cuePlaylist[A] === readsBefore + 1
-        && title === `Title ${A1}`,
-      hiddenBefore, reads: calls.cuePlaylist[A], title,
     };
   },
 
@@ -540,6 +362,117 @@ const scenarios = {
       pass: visitors.length >= 4 && visitors.length <= 6 && untagged && different && moved && leaving === visitors.length && real === 1,
       visitors: visitors.length, untagged, models, different, moved, leaving, real,
     };
+  },
+
+  // The ⚙ opens the Manage playlists modal over the player; the song keeps playing; × closes it.
+  async 'modal-opens'() {
+    await import('/app.js');
+    await wait(800);
+    $('playBtn').click();
+    await wait(300);
+    const title = $('nowTitle').textContent, loads = calls.loadVideoById.length;
+    $('manageBtn').click();
+    await wait(100);
+    const open = $('manageDialog').open;
+    const cards = document.querySelectorAll('#mSources .source').length;
+    $('manageDialog').querySelector('[data-close]').click();
+    await wait(100);
+    return {
+      pass: open && cards === 1 && !$('manageDialog').open && $('nowTitle').textContent === title && calls.loadVideoById.length === loads,
+      open, cards, closed: !$('manageDialog').open,
+    };
+  },
+
+  // Removing a playlist in the modal takes its songs out at once; Undo brings them back.
+  async 'modal-remove-undo'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A, B], weights: { [A1]: 5 }, extras: [], removed: [], sourceInfo: {} }));
+    await import('/app.js');
+    await wait(1000);
+    $('manageBtn').click();
+    const ids = () => [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort().join();
+    const before = ids();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="remove"]`).click();
+    await wait(100);
+    const afterRemove = ids(), sourcesAfter = saved().sources.join();
+    const note = $('mStatus').textContent;
+    [...$('mStatus').querySelectorAll('button')].find(b => b.textContent === 'Undo').click();
+    await wait(200);
+    return {
+      pass: before === [A1, A2, B1].join() && afterRemove === B1 && sourcesAfter === B && note.startsWith(`Removed Title ${A}.`)
+        && ids() === before && saved().sources.join() === [A, B].join() && saved().weights[A1] === 5,
+      before, afterRemove, note, after: ids(),
+    };
+  },
+
+  // Adding a playlist in the modal reads it straight away; Start over empties the list but keeps weights.
+  async 'modal-add-start-over'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: { [A1]: 5 }, extras: [B1], removed: [], sourceInfo: {} }));
+    await import('/app.js');
+    await wait(1000);
+    $('manageBtn').click();
+    const addedHere = document.querySelectorAll('#mExtras .source').length;
+    $('mAddLink').value = `https://www.youtube.com/playlist?list=${C}`;
+    $('mAddForm').requestSubmit();
+    await wait(800);
+    const card = document.querySelector(`#mSources .source[data-id="${C}"]`)?.textContent ?? '';
+    const withC = document.querySelectorAll('.song').length;
+    $('mStartOver').click();
+    $('mConfirmClear').click();
+    await wait(200);
+    const rot = saved();
+    return {
+      pass: addedHere === 1 && card.includes('5 songs') && withC === 8
+        && rot.sources.length === 0 && rot.extras.length === 0 && rot.weights[A1] === 5 && document.querySelectorAll('.song').length === 0,
+      addedHere, card, withC, rot,
+    };
+  },
+
+  // ↻ Sync on one playlist re-reads just that one, brings back its removed songs and refreshes its titles.
+  async 'modal-sync-playlist'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A, B], weights: {}, extras: [], removed: [A2, B1], sourceInfo: {} }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: Date.now() } }));
+    await import('/app.js');
+    await wait(1000);
+    const readsA = calls.cuePlaylist[A], readsB = calls.cuePlaylist[B];
+    $('manageBtn').click();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="sync"]`).click();
+    await wait(1000);
+    const has = id => !!document.querySelector(`.song[data-id="${id}"]`);
+    const titleA1 = document.querySelector(`.song[data-id="${A1}"] .t`)?.textContent;
+    return {
+      pass: has(A2) && !has(B1) && saved().removed.join() === B1 && calls.cuePlaylist[A] === readsA + 1
+        && calls.cuePlaylist[B] === readsB && titleA1 === `Title ${A1}` && $('mStatus').textContent.startsWith(`Synced Title ${A}.`),
+      removed: saved().removed, reads: calls.cuePlaylist, titleA1, note: $('mStatus').textContent,
+    };
+  },
+
+  // The modal's added songs show remembered titles without looking them up again.
+  async 'modal-remembered-titles'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [], weights: {}, extras: [B1], removed: [], sourceInfo: {} }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [B1]: { title: 'Remembered B1', author: 'Mara', thumbnail: '', at: Date.now() } }));
+    await import('/app.js');
+    await wait(300);
+    $('manageBtn').click();
+    const text = document.querySelector('#mExtras .source .t')?.textContent;
+    return { pass: text === 'Remembered B1' && !calls.oembed.includes(B1), text, lookups: calls.oembed };
+  },
+
+  // A song added back after its playlist was removed (in the modal) stays in the list as an added song.
+  async 'readd-after-playlist-removed'() {
+    await import('/app.js');
+    await wait(800);
+    const row = document.querySelector(`.song[data-id="${A2}"]`);
+    row.querySelector('[data-role="menu"]').click();
+    row.querySelector('[data-role="remove"]').click();
+    await wait(100);
+    $('manageBtn').click();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="remove"]`).click();
+    $('manageDialog').querySelector('[data-close]').click();
+    await wait(200);
+    $('addLink').value = `https://youtu.be/${A2}`;
+    $('addForm').requestSubmit();
+    await wait(200);
+    return { pass: saved().extras.includes(A2) && !!document.querySelector(`.song[data-id="${A2}"]`), rot: saved() };
   },
 
   // Any message can be closed with its × button.

@@ -8,6 +8,7 @@ import { loadYouTubeApi, createPlayer, fetchInfo, fetchVideoInfos, playlistUrl, 
 import { setupSongList, renderSongs, flashRow } from './songs-view.js';
 import { setupEndModeButtons, renderPlayer } from './player-view.js';
 import { setupQueue, renderQueue } from './queue-view.js';
+import { setupManage } from './manage-view.js';
 import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
 
@@ -26,7 +27,7 @@ const titleCache = store.loadTitles(); // videoId -> { title, author, thumbnail,
 
 const state = {
   sourceSongs: new Map(),       // playlist ID -> its video IDs, as read this session
-  failedSources: new Set(),     // playlists that couldn't be read this session
+  syncing: new Set(),           // playlists being re-read by a Sync in the manage modal
   songs: new Map(),             // videoId -> { id, title, author, weight, extra, blocked }
   order: [],                    // videoIds in display order
   playerState: STATE.UNSTARTED,
@@ -172,7 +173,7 @@ function setWeight(id, value) {
   }, 1000);
 }
 
-function removeSong(id) {
+function removeSong(id, { quiet = false } = {}) {
   const song = state.songs.get(id);
   if (!song) return;
   state.songs.delete(id);
@@ -182,7 +183,7 @@ function removeSong(id) {
   resort();
   save();
   render();
-  showStatus(`Removed ${song.title ?? id}. Still on YouTube.`, 'ok', [{ label: 'Undo', onClick: () => restoreSong(id) }]);
+  if (!quiet) showStatus(`Removed ${song.title ?? id}. Still on YouTube.`, 'ok', [{ label: 'Undo', onClick: () => restoreSong(id) }]);
 }
 
 function restoreSong(id) {
@@ -214,12 +215,10 @@ async function loadSource(listId) {
   try {
     const ids = await readSource(listId);
     state.sourceSongs.set(listId, ids);
-    state.failedSources.delete(listId);
     rotation.sourceInfo[listId] = { ...rotation.sourceInfo[listId], count: ids.length, status: 'ok' };
     return true;
   } catch {
     state.sourceSongs.delete(listId);
-    state.failedSources.add(listId);
     rotation.sourceInfo[listId] = { ...rotation.sourceInfo[listId], status: 'error' };
     return false;
   }
@@ -296,9 +295,9 @@ function setLoading(delta) {
   $('listLoading').hidden = loadingReads === 0;
 }
 
-// Read the rotation's playlists (all of them, or only ones not read yet) and rebuild the list.
-async function loadRotation({ refresh = true } = {}) {
-  const toRead = rotation.sources.filter(id => refresh || (!state.sourceSongs.has(id) && !state.failedSources.has(id)));
+// Read all of the rotation's playlists and rebuild the list.
+async function loadRotation() {
+  const toRead = [...rotation.sources];
   if (toRead.length) setLoading(+1);
   const results = await Promise.all(toRead.map(async id => [id, await loadSource(id)]));
   if (toRead.length) setLoading(-1);
@@ -308,29 +307,98 @@ async function loadRotation({ refresh = true } = {}) {
   toRead.forEach(refreshSourceTitle);
 }
 
-// Pasting a playlist adds its songs to the list. Nothing that's playing is interrupted.
+// Adding a playlist (pasted in the top bar or in the modal) adds its songs to the list.
+// Nothing that's playing is interrupted. Returns { ok, message } for the caller to show.
 async function addPlaylist(listId) {
-  if (!reader) return showStatus('The YouTube player is still loading. Try again in a moment.');
-  if (rotation.sources.includes(listId)) return showStatus('That playlist is already in your list.');
+  if (!reader) return { ok: false, message: 'The YouTube player is still loading. Try again in a moment.' };
+  if (rotation.sources.includes(listId)) return { ok: true, message: 'That playlist is already in your list.' };
   rotation.sources.push(listId);
   save();
-  showStatus('Loading playlist…');
   const before = new Set(state.songs.keys());
   if (!(await loadSource(listId))) {
     rotation.sources = rotation.sources.filter(id => id !== listId);
     delete rotation.sourceInfo[listId];
     save();
-    return showStatus(isMix(listId)
-      ? "YouTube Mix playlists can't be loaded here. Save the songs to a regular playlist and paste that link instead."
-      : "Couldn't load this playlist. It may be private or deleted.", 'err');
+    return {
+      ok: false,
+      message: isMix(listId)
+        ? "YouTube Mix playlists can't be loaded here. Save the songs to a regular playlist and paste that link instead."
+        : "Couldn't load this playlist. It may be private or deleted.",
+    };
   }
-  if (!rotation.sources.includes(listId)) rotation.sources.push(listId); // another tab saved meanwhile
   rebuildSongs();
   const added = [...state.songs.keys()].filter(id => !before.has(id)).length;
   await refreshSourceTitle(listId);
   const title = rotation.sourceInfo[listId]?.title ?? 'the playlist';
-  showStatus(`Added ${title} (${added} new ${added === 1 ? 'song' : 'songs'}).`, 'ok');
+  return { ok: true, message: `Added ${title} (${added} new ${added === 1 ? 'song' : 'songs'}).` };
 }
+
+async function addPlaylistFromTopBar(listId) {
+  if (reader && !rotation.sources.includes(listId)) showStatus('Loading playlist…');
+  const result = await addPlaylist(listId);
+  showStatus(result.message, result.ok ? 'ok' : 'err');
+}
+
+// ---------- manage playlists (the modal) ----------
+
+function removeSource(listId) {
+  const index = rotation.sources.indexOf(listId);
+  if (index < 0) return -1;
+  rotation.sources.splice(index, 1);
+  rebuildSongs(); // its songs leave; a playing one finishes
+  return index;
+}
+
+async function restoreSource(listId, index) {
+  if (rotation.sources.includes(listId)) return;
+  rotation.sources.splice(Math.min(index, rotation.sources.length), 0, listId);
+  if (!state.sourceSongs.has(listId)) await loadSource(listId);
+  rebuildSongs();
+}
+
+// Re-read one playlist from YouTube, bring back its songs removed here, and refresh their titles.
+async function syncSource(listId) {
+  const title = () => rotation.sourceInfo[listId]?.title ?? 'the playlist';
+  state.syncing.add(listId);
+  const ok = await loadSource(listId);
+  state.syncing.delete(listId);
+  if (!ok) {
+    save();
+    render();
+    return { ok: false, message: `Couldn't read ${title()} from YouTube. It may be private or deleted.` };
+  }
+  const ids = new Set(state.sourceSongs.get(listId));
+  rotation.removed = rotation.removed.filter(id => !ids.has(id));
+  for (const id of ids) if (titleCache[id]) titleCache[id] = { ...titleCache[id], at: 0 };
+  rebuildSongs();
+  loadTitles([...ids]);
+  await refreshSourceTitle(listId);
+  return { ok: true, message: `Synced ${title()}.` };
+}
+
+// Empty the list: no playlists, no added songs, nothing removed. Weights stay remembered.
+function startOver() {
+  rotation = { ...rotation, sources: [], extras: [], removed: [], sourceInfo: {} };
+  rebuildSongs();
+}
+
+function manageData() {
+  return {
+    sources: rotation.sources.map(id => ({ id, ...rotation.sourceInfo[id], syncing: state.syncing.has(id) })),
+    extras: rotation.extras.map(id => ({ id, ...titleCache[id], ...songInfo(id) })),
+  };
+}
+
+const manage = setupManage($('manageDialog'), {
+  getData: manageData,
+  addPlaylist,
+  removeSource,
+  restoreSource,
+  syncSource,
+  removeExtra: id => removeSong(id, { quiet: true }),
+  restoreExtra: id => restoreSong(id),
+  startOver,
+});
 
 async function addVideo(videoId) {
   if (state.songs.has(videoId)) return showStatus('That song is already in the list.');
@@ -516,6 +584,7 @@ function render() {
   crewView.setCurrent(queue.current);
   crewView.setPaused(state.playerState !== STATE.PLAYING);
   crewView.refreshTitles();
+  manage.render();
 }
 
 // ---------- events ----------
@@ -545,11 +614,11 @@ $('loadForm').addEventListener('submit', e => {
   }
   $('plLink').value = '';
   $('loadBtn').textContent = 'Load';
-  if (link.type === 'playlist') addPlaylist(link.listId);
+  if (link.type === 'playlist') addPlaylistFromTopBar(link.listId);
   else if (link.type === 'video') addVideo(link.videoId);
   else {
     showStatus('This link is a video inside a playlist.', '', [
-      { label: 'Add the whole playlist', primary: true, onClick: () => addPlaylist(link.listId) },
+      { label: 'Add the whole playlist', primary: true, onClick: () => addPlaylistFromTopBar(link.listId) },
       { label: 'Add just this video', onClick: () => addVideo(link.videoId) },
     ]);
   }
@@ -587,21 +656,7 @@ $('penToggle').addEventListener('click', () => {
 
 // The manage page (another tab) changed the rotation: take its version and read any new playlists.
 // Songs that leave finish if they're playing, like a removed song.
-// A Sync on the manage page also re-reads every playlist and looks up every title again.
-let handledSync = rotation.syncAt ?? 0;
-window.addEventListener('storage', e => {
-  if (e.key !== 'hr:rotation') return;
-  rotation = store.loadRotation();
-  const sync = (rotation.syncAt ?? 0) > handledSync;
-  if (sync) {
-    handledSync = rotation.syncAt;
-    Object.assign(titleCache, store.loadTitles());
-  }
-  if (!reader) return rebuildSongs(); // boot reads the playlists once the reader is ready
-  loadRotation({ refresh: sync }).then(() => {
-    if (sync) loadTitles([...state.songs.keys()]);
-  });
-});
+$('manageBtn').addEventListener('click', () => manage.open());
 
 if (!store.available) $('storageNote').hidden = false;
 // Build the list from the saved rotation straight away, so nothing saved before the playlists

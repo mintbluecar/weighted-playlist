@@ -68,7 +68,7 @@
       <div class="lhead">
         <div class="lhead-title">
           <div><h2 id="plName">No playlist loaded</h2><div class="owner" id="plOwner"></div></div>
-          <a class="manage-link" href="manage.html" aria-label="Manage playlists" data-tip="Manage playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2.6M12 18.4V21M3 12h2.6M18.4 12H21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9"/></svg></a>
+          <button type="button" class="manage-link" id="manageBtn" aria-label="Manage playlists" aria-haspopup="dialog" data-tip="Manage playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3v2.6M12 18.4V21M3 12h2.6M18.4 12H21M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M5.6 18.4l1.9-1.9M16.5 7.5l1.9-1.9"/></svg></button>
         </div>
         <div class="meta"><span id="listMeta"></span>
           <span class="wlabel">Weight <button type="button" class="info" id="infoBtn" aria-label="What weight means" aria-describedby="infoTip" aria-expanded="false">i</button><span class="infotip" id="infoTip" role="tooltip">The heavier the weight, the more often a song comes around.</span></span>
@@ -82,6 +82,41 @@
       </form>
     </section>
   </div>
+
+  <dialog class="modal" id="manageDialog" aria-labelledby="manageTitle">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <div><h2 id="manageTitle">Manage playlists</h2><p class="modal-sub">Changes here never change YouTube.</p></div>
+        <button type="button" class="modal-close" data-close aria-label="Close">×</button>
+      </div>
+      <form class="load" id="mAddForm">
+        <input class="field" id="mAddLink" placeholder="Paste a YouTube playlist link to add it" aria-label="YouTube playlist link to add" autocomplete="off">
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+      <div class="status" id="mStatus" role="status" hidden></div>
+
+      <section class="list" aria-labelledby="mPlaylistsHeading">
+        <div class="lhead"><div><h2 id="mPlaylistsHeading">Playlists</h2><div class="owner">Sync a playlist to pick up changes from YouTube and bring back songs you removed from it.</div></div></div>
+        <ol class="sources" id="mSources"></ol>
+        <p class="empty" id="mSourcesEmpty" hidden>No playlists yet. Paste one above.</p>
+      </section>
+
+      <section class="list" aria-labelledby="mExtrasHeading">
+        <div class="lhead"><div><h2 id="mExtrasHeading">Added here</h2><div class="owner">Single songs added in Loopsided.</div></div></div>
+        <ol class="sources" id="mExtras"></ol>
+        <p class="empty" id="mExtrasEmpty" hidden>No songs added here.</p>
+      </section>
+
+      <section class="danger-zone">
+        <button class="btn danger" id="mStartOver" type="button" data-tip="Removes every playlist and added song. Weights are kept.">Start over</button>
+        <div class="confirm" id="mConfirmStartOver" hidden>
+          <span>Clear all playlists and added songs? Your weights are kept.</span>
+          <button class="btn danger solid" id="mConfirmClear" type="button">Clear list</button>
+          <button class="btn" id="mCancelStartOver" type="button">Cancel</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
 
   <footer class="site-footer">
     made with love by twitter user <a href="https://x.com/mintbluetoyota" target="_blank" rel="noopener">@mintbluetoyota</a>.<br>
