@@ -261,7 +261,7 @@ A wide, low strip across the top of the page, above the player and the song list
 ```
 
 - Weights of 1 are not stored. Weights are never dropped (so they come back when a playlist or song returns).
-- `sourceInfo` is written by the player page each time it reads the playlists (`status`: `ok` or `error`); the manage page only reads it.
+- `sourceInfo` is written by the player page each time it reads the playlists (`status`: `ok` or `error`). The manage page also writes a new playlist's title and owner when it adds one, so the card shows its name straight away.
 - **Migration:** on first load without `hr:rotation`, the old `hr:settings.lastSource` and its `hr:playlist:<id>` (or `hr:playlist:mine`) entry become the rotation, so no weights are lost. Old keys are left in place.
 - Every read and write is wrapped in `try/catch`. If storage is unavailable, everything still works for the session and a small note says weights won't be remembered.
 

@@ -13,15 +13,17 @@ const realFetch = window.fetch.bind(window);
 // ---- fake YouTube IFrame API ----
 const playlists = { [A]: [A1, A2], [B]: [B1], [C]: CS };
 const cueDelay = { [A]: 20, [B]: 20, [C]: 20 };
-const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0 };
+const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0, cuePlaylist: {} };
+let readyDelay = 0; // scenarios can delay the fake players becoming ready
 window.YT = {
   Player: class {
     constructor(id, opts) {
       this.opts = opts;
-      setTimeout(() => opts.events.onReady(), 0);
+      setTimeout(() => opts.events.onReady(), readyDelay);
     }
     emit(state) { this.opts.events.onStateChange({ data: state }); }
     cuePlaylist({ list }) {
+      calls.cuePlaylist[list] = (calls.cuePlaylist[list] ?? 0) + 1;
       this.pending = list;
       if (!playlists[list]) return; // an unknown list is never reported as cued
       setTimeout(() => {
@@ -367,6 +369,79 @@ const scenarios = {
         && calls.loadVideoById.length === loadsBefore && $('plName').textContent === 'No playlist loaded',
       songs: document.querySelectorAll('.song').length, playing, now: $('nowTitle').textContent,
     };
+  },
+
+  // Adding a video before the playlists finish reading keeps saved added songs and removed songs.
+  async 'add-video-before-load'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: ['xxxxxxxxxx1'], removed: [A2], sourceInfo: {} }));
+    cueDelay[A] = 1500;
+    await import('/app.js');
+    await wait(50);
+    $('addLink').value = `https://youtu.be/${B1}`;
+    $('addForm').requestSubmit();
+    await wait(100);
+    const early = saved();
+    await wait(2500);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort();
+    return {
+      pass: early.extras.includes('xxxxxxxxxx1') && early.extras.includes(B1) && early.removed.includes(A2)
+        && !ids.includes(A2) && ids.includes('xxxxxxxxxx1'),
+      early, ids,
+    };
+  },
+
+  // A manage-page change while the player is still starting up isn't overwritten.
+  async 'other-tab-before-ready'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [], sourceInfo: {} }));
+    readyDelay = 600;
+    await import('/app.js');
+    await wait(100);
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(1500);
+    return { pass: saved().sources.length === 0 && document.querySelectorAll('.song').length === 0, sources: saved().sources };
+  },
+
+  // A manage-page save while a pasted playlist is being read doesn't drop the pasted playlist.
+  async 'paste-during-other-tab-edit'() {
+    await import('/app.js');
+    await wait(800);
+    cueDelay[B] = 600;
+    submitLink(`https://www.youtube.com/playlist?list=${B}`);
+    await wait(100);
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [A] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(1500);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id);
+    return { pass: saved().sources.join() === [A, B].join() && ids.includes(B1), sources: saved().sources, ids };
+  },
+
+  // A song added back after its playlist was removed stays in the list.
+  async 'readd-after-playlist-removed'() {
+    await import('/app.js');
+    await wait(800);
+    const row = document.querySelector(`.song[data-id="${A2}"]`);
+    row.querySelector('[data-role="menu"]').click();
+    row.querySelector('[data-role="remove"]').click();
+    await wait(100);
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(300);
+    $('addLink').value = `https://youtu.be/${A2}`;
+    $('addForm').requestSubmit();
+    await wait(200);
+    return { pass: saved().extras.includes(A2) && !!document.querySelector(`.song[data-id="${A2}"]`), rot: saved() };
+  },
+
+  // A playlist that failed to load isn't re-read on every manage-page change.
+  async 'failed-not-reread'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A, 'PLXXXX'], weights: {}, extras: [], removed: [], sourceInfo: {} }));
+    await import('/app.js');
+    await wait(12500);
+    const before = calls.cuePlaylist.PLXXXX;
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(500);
+    return { pass: before === 1 && calls.cuePlaylist.PLXXXX === 1, before, after: calls.cuePlaylist.PLXXXX };
   },
 
   // Any message can be closed with its × button.

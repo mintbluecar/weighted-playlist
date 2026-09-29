@@ -25,6 +25,7 @@ let rotation = store.loadRotation();
 
 const state = {
   sourceSongs: new Map(),       // playlist ID -> its video IDs, as read this session
+  failedSources: new Set(),     // playlists that couldn't be read this session
   songs: new Map(),             // videoId -> { id, title, author, weight, extra, blocked }
   order: [],                    // videoIds in display order
   playerState: STATE.UNSTARTED,
@@ -171,6 +172,7 @@ function restoreSong(id) {
   if (!song || state.songs.has(id)) return;
   state.removedInfo.delete(id);
   state.removed.delete(id);
+  song.extra = !state.playlistIds.has(id);
   state.songs.set(id, song);
   updateCounts();
   resort();
@@ -194,10 +196,12 @@ async function loadSource(listId) {
   try {
     const ids = await readSource(listId);
     state.sourceSongs.set(listId, ids);
+    state.failedSources.delete(listId);
     rotation.sourceInfo[listId] = { ...rotation.sourceInfo[listId], count: ids.length, status: 'ok' };
     return true;
   } catch {
     state.sourceSongs.delete(listId);
+    state.failedSources.add(listId);
     rotation.sourceInfo[listId] = { ...rotation.sourceInfo[listId], status: 'error' };
     return false;
   }
@@ -269,7 +273,7 @@ function failedMessage(listIds) {
 
 // Read the rotation's playlists (all of them, or only ones not read yet) and rebuild the list.
 async function loadRotation({ refresh = true } = {}) {
-  const toRead = rotation.sources.filter(id => refresh || !state.sourceSongs.has(id));
+  const toRead = rotation.sources.filter(id => refresh || (!state.sourceSongs.has(id) && !state.failedSources.has(id)));
   const results = await Promise.all(toRead.map(async id => [id, await loadSource(id)]));
   rebuildSongs();
   const failed = results.filter(([, ok]) => !ok).map(([id]) => id);
@@ -282,6 +286,7 @@ async function addPlaylist(listId) {
   if (!reader) return showStatus('The YouTube player is still loading. Try again in a moment.');
   if (rotation.sources.includes(listId)) return showStatus('That playlist is already in your list.');
   rotation.sources.push(listId);
+  save();
   showStatus('Loading playlist…');
   const before = new Set(state.songs.keys());
   if (!(await loadSource(listId))) {
@@ -292,6 +297,7 @@ async function addPlaylist(listId) {
       ? "YouTube Mix playlists can't be loaded here. Save the songs to a regular playlist and paste that link instead."
       : "Couldn't load this playlist. It may be private or deleted.", 'err');
   }
+  if (!rotation.sources.includes(listId)) rotation.sources.push(listId); // another tab saved meanwhile
   rebuildSongs();
   const added = [...state.songs.keys()].filter(id => !before.has(id)).length;
   await refreshSourceTitle(listId);
@@ -557,13 +563,16 @@ $('penToggle').addEventListener('click', () => {
 // The manage page (another tab) changed the rotation: take its version and read any new playlists.
 // Songs that leave finish if they're playing, like a removed song.
 window.addEventListener('storage', e => {
-  if (e.key !== 'hr:rotation' || !reader) return;
+  if (e.key !== 'hr:rotation') return;
   rotation = store.loadRotation();
-  loadRotation({ refresh: false });
+  if (reader) loadRotation({ refresh: false });
+  else rebuildSongs(); // boot reads the playlists once the reader is ready
 });
 
 if (!store.available) $('storageNote').hidden = false;
-render();
+// Build the list from the saved rotation straight away, so nothing saved before the playlists
+// are read (like adding a video) can overwrite the saved added and removed songs.
+rebuildSongs();
 boot();
 
 async function boot() {
