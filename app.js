@@ -62,8 +62,14 @@ function newQueue() {
 
 // ---------- status line ----------
 
+// Success notes clear themselves; errors and questions stay until the next action.
+const OK_NOTE_MS = 4000;
+let statusTimer = null;
+
 function showStatus(message, kind = '', actions = []) {
   const box = $('status');
+  clearTimeout(statusTimer);
+  if (kind === 'ok') statusTimer = setTimeout(hideStatus, OK_NOTE_MS);
   box.className = `status ${kind}`.trim();
   const text = document.createElement('span');
   text.textContent = message;

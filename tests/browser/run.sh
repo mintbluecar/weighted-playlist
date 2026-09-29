@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/../.." || exit 1
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT=8765
-SCENARIOS=${*:-load-race failed-load typed-weight}
+SCENARIOS=${*:-load-race failed-load typed-weight added-note-hides}
 
 python3 -m http.server $PORT >/dev/null 2>&1 &
 SERVER=$!

@@ -85,6 +85,22 @@ const scenarios = {
     };
   },
 
+  // The "Added to…" note goes away on its own; an error message stays.
+  async 'added-note-hides'() {
+    await import('/app.js');
+    await wait(300);
+    $('addLink').value = 'https://youtu.be/cccccccccc1';
+    $('addForm').requestSubmit();
+    await wait(200);
+    const shownAfterAdd = !$('status').hidden && $('status').classList.contains('ok');
+    await wait(5000);
+    const hiddenLater = $('status').hidden;
+    submitLink('https://example.com/nope');
+    await wait(5000);
+    const errorStays = !$('status').hidden && $('status').classList.contains('err');
+    return { pass: shownAfterAdd && hiddenLater && errorStays, shownAfterAdd, hiddenLater, errorStays };
+  },
+
   // A typed weight outside 1–99 must show the stored value, not what was typed.
   async 'typed-weight'() {
     await import('/app.js');
