@@ -153,3 +153,12 @@ test('titlesToLookUp picks songs with no title or one older than a day', () => {
   const cache = { fresh: { title: 'F', at: now - 1000 }, old: { title: 'O', at: now - DAY_MS - 1 } };
   assert.deepEqual(titlesToLookUp(['fresh', 'old', 'missing'], cache, now), ['old', 'missing']);
 });
+
+test('an old per-playlist entry can be taken once, then it is gone', () => {
+  const backend = memoryBackend();
+  backend.setItem(playlistKey('PL9'), JSON.stringify({ weights: { a: 7 }, extras: ['x'], removed: ['r'] }));
+  const store = createStore(backend);
+  assert.deepEqual(store.takeOldPlaylist('PL9'), { weights: { a: 7 }, extras: ['x'], removed: ['r'] });
+  assert.equal(backend.getItem(playlistKey('PL9')), null);
+  assert.equal(store.takeOldPlaylist('PL9'), null);
+});

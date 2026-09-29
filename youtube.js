@@ -59,10 +59,11 @@ export function loadYouTubeApi({ timeoutMs = 15000 } = {}) {
   return apiPromise;
 }
 
-export function createPlayer(YT, elementId, { onStateChange, onError } = {}) {
+// `element` is an element or its ID; YouTube replaces it with the player's iframe.
+export function createPlayer(YT, element, { onStateChange, onError } = {}) {
   let cuedAt = 0;
   return new Promise(resolve => {
-    const yt = new YT.Player(elementId, {
+    const yt = new YT.Player(element, {
       width: '100%',
       height: '100%',
       playerVars: { playsinline: 1, rel: 0, origin: location.origin },
@@ -85,6 +86,7 @@ function wrapPlayer(yt, lastCuedAt) {
     pause: () => yt.pauseVideo(),
     resume: () => yt.playVideo(),
     stop: () => yt.stopVideo(),
+    destroy: () => yt.destroy(),
 
     // Cue the playlist, wait for YouTube to report it as cued, then read its video IDs.
     // Waiting for the CUED event avoids reading the previous playlist's IDs.
@@ -100,6 +102,31 @@ function wrapPlayer(yt, lastCuedAt) {
         };
         poll();
       });
+    },
+  };
+}
+
+// A hidden player used only to read playlists (so reading never interrupts playback).
+// YouTube may still answer a read that timed out; the player can't say which playlist an answer
+// is for (the API has no playlist-ID getter), so after a timeout the player is destroyed and
+// replaced, and a late answer can't be taken as the next read's.
+export async function createReader(YT, container) {
+  let player = null;
+  async function fresh() {
+    const slot = document.createElement('div');
+    container.append(slot);
+    player = await createPlayer(YT, slot);
+  }
+  await fresh();
+  return {
+    async listPlaylist(listId) {
+      try {
+        return await player.listPlaylist(listId);
+      } catch (err) {
+        player.destroy();
+        await fresh();
+        throw err;
+      }
     },
   };
 }

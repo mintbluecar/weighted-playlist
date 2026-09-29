@@ -98,8 +98,15 @@ export function setupManage(dialog, actions) {
     return li;
   }
 
-  function render() {
-    const { sources, extras } = actions.getData();
+  // Rebuild the cards only when what they show has changed, so focus and tooltips aren't lost
+  // every time the player updates.
+  let shown = '';
+  function render({ force = false } = {}) {
+    const data = actions.getData();
+    const key = JSON.stringify(data);
+    if (!force && key === shown) return;
+    shown = key;
+    const { sources, extras } = data;
     $('mSources').replaceChildren(...sources.map(sourceCard));
     $('mSourcesEmpty').hidden = sources.length > 0;
     $('mExtras').replaceChildren(...extras.map(extraRow));
@@ -181,7 +188,7 @@ export function setupManage(dialog, actions) {
 
   return {
     open() {
-      render();
+      render({ force: true });
       dialog.showModal();
     },
     // Called by the player whenever its list changes, so an open modal stays current.

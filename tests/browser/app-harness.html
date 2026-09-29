@@ -8,11 +8,13 @@ const scenario = new URLSearchParams(location.search).get('scenario');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const A = 'PLAAAA', B = 'PLBBBB', A1 = 'aaaaaaaaaa1', A2 = 'aaaaaaaaaa2', B1 = 'bbbbbbbbbb1';
 const C = 'PLCCCC', CS = [1, 2, 3, 4, 5].map(n => `cccccccccc${n}`);
+const SLOW = 'PLSLOW', S1 = 'ssssssssss1';
 const realFetch = window.fetch.bind(window);
 
 // ---- fake YouTube IFrame API ----
-const playlists = { [A]: [A1, A2], [B]: [B1], [C]: CS };
-const cueDelay = { [A]: 20, [B]: 20, [C]: 20 };
+const playlists = { [A]: [A1, A2], [B]: [B1], [C]: CS, [SLOW]: [S1] };
+const cueDelay = { [A]: 20, [B]: 20, [C]: 20, [SLOW]: 11000 };
+const lateAnswer = new Set([SLOW]); // like YouTube: still answers after a newer cue
 const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0, cuePlaylist: {}, oembed: [] };
 let readyDelay = 0; // scenarios can delay the fake players becoming ready
 window.YT = {
@@ -21,13 +23,14 @@ window.YT = {
       this.opts = opts;
       setTimeout(() => opts.events.onReady(), readyDelay);
     }
-    emit(state) { this.opts.events.onStateChange({ data: state }); }
+    emit(state) { if (!this.dead) this.opts.events.onStateChange({ data: state }); }
+    destroy() { this.dead = true; }
     cuePlaylist({ list }) {
       calls.cuePlaylist[list] = (calls.cuePlaylist[list] ?? 0) + 1;
       this.pending = list;
       if (!playlists[list]) return; // an unknown list is never reported as cued
       setTimeout(() => {
-        if (this.pending !== list) return;
+        if (this.pending !== list && !lateAnswer.has(list)) return;
         this.list = list;
         this.emit(5);
       }, cueDelay[list]);
@@ -473,6 +476,120 @@ const scenarios = {
     $('addForm').requestSubmit();
     await wait(200);
     return { pass: saved().extras.includes(A2) && !!document.querySelector(`.song[data-id="${A2}"]`), rot: saved() };
+  },
+
+  // A failed Sync keeps the playlist's songs; removing another playlist later doesn't drop them.
+  async 'failed-sync-keeps-songs'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A, B], weights: {}, extras: [], removed: [], sourceInfo: {} }));
+    await import('/app.js');
+    await wait(1000);
+    delete playlists[A];                       // A can't be read any more
+    $('manageBtn').click();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="sync"]`).click();
+    await wait(11000);
+    document.querySelector(`#mSources .source[data-id="${B}"] [data-action="remove"]`).click();
+    await wait(200);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id).sort();
+    return { pass: ids.join() === [A1, A2].join() && $('mStatus').textContent !== '', ids };
+  },
+
+  // Another tab adds a playlist: this tab picks it up, and its own saves keep it.
+  async 'other-tab-adds-playlist'() {
+    await import('/app.js');
+    await wait(800);
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), sources: [A, B] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(500);
+    const input = $(`w-${A1}`);
+    input.value = '3';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await wait(100);
+    return { pass: !!document.querySelector(`.song[data-id="${B1}"]`) && saved().sources.join() === [A, B].join(), sources: saved().sources };
+  },
+
+  // A read that times out and answers late isn't credited to the next playlist.
+  async 'late-answer-not-misfiled'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [SLOW, B], weights: {}, extras: [], removed: [], sourceInfo: {} }));
+    cueDelay[B] = 2000;
+    await import('/app.js');
+    await wait(15000);
+    const ids = [...document.querySelectorAll('.song')].map(li => li.dataset.id);
+    return { pass: ids.join() === B1 && saved().sourceInfo[SLOW]?.status === 'error', ids, info: saved().sourceInfo };
+  },
+
+  // Sync before YouTube's player is ready says so, and doesn't mark the playlist as broken.
+  async 'sync-before-ready'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [], sourceInfo: {} }));
+    readyDelay = 1500;
+    await import('/app.js');
+    await wait(100);
+    $('manageBtn').click();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="sync"]`).click();
+    await wait(100);
+    const note = $('mStatus').textContent;
+    const status = saved().sourceInfo[A]?.status;
+    await wait(2000);
+    return { pass: note.startsWith('The YouTube player is still loading.') && status !== 'error' && document.querySelectorAll('.song').length === 2, note, status };
+  },
+
+  // Pasting a playlist that had its own saved entry in the old version brings back its weights and removed songs.
+  async 'old-playlist-weights-return'() {
+    localStorage.setItem(`hr:playlist:${C}`, JSON.stringify({ weights: { [CS[0]]: 7 }, extras: [], removed: [CS[1]] }));
+    await import('/app.js');
+    await wait(800);
+    submitLink(`https://www.youtube.com/playlist?list=${C}`);
+    await wait(800);
+    const weight = $(`w-${CS[0]}`)?.value;
+    return {
+      pass: weight === '7' && !document.querySelector(`.song[data-id="${CS[1]}"]`) && localStorage.getItem(`hr:playlist:${C}`) === null,
+      weight, rot: saved(),
+    };
+  },
+
+  // The open modal isn't rebuilt when nothing in it changed, so keyboard focus stays put.
+  async 'modal-keeps-focus'() {
+    await import('/app.js');
+    await wait(800);
+    $('manageBtn').click();
+    const button = document.querySelector(`#mSources .source[data-id="${A}"] [data-action="remove"]`);
+    button.focus();
+    $('playBtn').click();                    // the player changes; the modal's data doesn't
+    await wait(300);
+    return { pass: document.activeElement === button, focused: document.activeElement?.textContent };
+  },
+
+  // Removing a playlist while it's still loading leaves nothing behind.
+  async 'remove-while-loading'() {
+    await import('/app.js');
+    await wait(800);
+    cueDelay[C] = 800;
+    $('manageBtn').click();
+    $('mAddLink').value = `https://www.youtube.com/playlist?list=${C}`;
+    $('mAddForm').requestSubmit();
+    await wait(100);
+    document.querySelector(`#mSources .source[data-id="${C}"] [data-action="remove"]`).click();
+    await wait(1500);
+    const rot = saved();
+    return {
+      pass: !rot.sources.includes(C) && !(C in rot.sourceInfo) && !$('mStatus').textContent.startsWith('Added') && !document.querySelector(`.song[data-id="${CS[0]}"]`),
+      rot, note: $('mStatus').textContent,
+    };
+  },
+
+  // Sync looks each song's title up once, and shows the loading line while it reads.
+  async 'sync-one-lookup-and-loading'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [A2], sourceInfo: {} }));
+    await import('/app.js');
+    await wait(800);
+    cueDelay[A] = 600;
+    const lookupsBefore = calls.oembed.filter(id => id === A2).length;
+    $('manageBtn').click();
+    document.querySelector(`#mSources .source[data-id="${A}"] [data-action="sync"]`).click();
+    await wait(200);
+    const loadingShown = !$('listLoading').hidden;
+    await wait(1200);
+    const lookups = calls.oembed.filter(id => id === A2).length - lookupsBefore;
+    return { pass: loadingShown && lookups === 1 && $('listLoading').hidden, loadingShown, lookups };
   },
 
   // Any message can be closed with its × button.

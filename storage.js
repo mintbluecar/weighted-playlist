@@ -78,6 +78,18 @@ export function createStore(backend) {
       return { weights, extras: strings(data.extras), removed: strings(data.removed) };
     },
 
+    // An entry saved per playlist by the old version, handed over once when that playlist is added.
+    takeOldPlaylist(id) {
+      if (!Object.keys(read(playlistKey(id))).length) return null;
+      const data = this.loadPlaylist(id);
+      try {
+        backend.removeItem(playlistKey(id));
+      } catch {
+        // storage refused; the entry just stays
+      }
+      return data;
+    },
+
     savePlaylist(id, { weights, extras, removed = [] }) {
       const kept = {};
       for (const [videoId, weight] of Object.entries(weights)) if (weight !== 1) kept[videoId] = weight;

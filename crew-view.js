@@ -5,9 +5,9 @@ import { creatureFor, CREATURES, PEN_LIMIT } from './crew.js';
 const LANES = [4, 12, 20];              // three depths, so creatures overlap less
 const NOTES = ['♪', '♫', '♩', '♬'];
 const WALK_SPEED = 26;                  // px per second for a 36 px creature; bigger ones walk slower
-const SCALE = 1.15;
+const SCALE = 1.15;                     // Kenney frames have some empty space around the creature
 const VISITOR_SIZE = 22;                // visitors are a little smaller than a first-play creature (26)
-const VISITOR_TIP = 'Play a song to build your own crew';                     // Kenney frames have some empty space around the creature
+const VISITOR_TIP = 'Play a song to build your own crew';
 
 export class CrewView {
   // Sprite files are found relative to this script, so any page that uses the crew can show them.
