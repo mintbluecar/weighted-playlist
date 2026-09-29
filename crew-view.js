@@ -2,7 +2,7 @@
 // following the events from crew.js. Movement stops while playback is paused.
 import { creatureFor, PEN_LIMIT } from './crew.js';
 
-const LANES = [6, 20, 34];              // three depths, so creatures overlap less
+const LANES = [4, 12, 20];              // three depths, so creatures overlap less
 const NOTES = ['♪', '♫', '♩', '♬'];
 const WALK_SPEED = 26;                  // px per second for a 36 px creature; bigger ones walk slower
 const SCALE = 1.15;                     // Kenney frames have some empty space around the creature

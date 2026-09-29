@@ -25,6 +25,11 @@
   <div class="status" id="status" role="status" hidden></div>
   <p class="storage-note" id="storageNote" hidden>This browser isn't saving data for this page, so your weights won't be remembered next time.</p>
 
+  <section class="pen" aria-label="The crew">
+    <div class="penhead"><h3>The crew</h3><span class="count" id="penCount"></span></div>
+    <div class="yard" id="yard"><div class="empty" id="yardEmpty">Press play and your songs show up here.</div></div>
+  </section>
+
   <div class="layout">
     <div class="left">
       <section class="player" aria-label="Player">
@@ -50,18 +55,12 @@
           </div>
         </div>
       </section>
-
-      <section class="pen" aria-label="The crew">
-        <div class="penhead"><h3>The crew</h3><span class="count" id="penCount"></span></div>
-        <div class="yard" id="yard"><div class="empty" id="yardEmpty">Press play and your songs show up here.</div></div>
+      <section class="queue" aria-label="Up next">
+        <div class="qhead"><h3>Up next</h3></div>
+        <ol class="qlist" id="queueList"></ol>
       </section>
     </div>
 
-    <div class="right">
-    <section class="queue" aria-label="Up next">
-      <div class="qhead"><h3>Up next</h3></div>
-      <ol class="qlist" id="queueList"></ol>
-    </section>
 
     <section class="list" aria-label="Songs">
       <div class="lhead">
@@ -76,7 +75,6 @@
         <button class="btn" type="submit">Add</button>
       </form>
     </section>
-    </div>
   </div>
 
   <footer class="site-footer">
