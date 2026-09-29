@@ -554,6 +554,14 @@ $('penToggle').addEventListener('click', () => {
   store.saveSettings(settings);
 });
 
+// The manage page (another tab) changed the rotation: take its version and read any new playlists.
+// Songs that leave finish if they're playing, like a removed song.
+window.addEventListener('storage', e => {
+  if (e.key !== 'hr:rotation' || !reader) return;
+  rotation = store.loadRotation();
+  loadRotation({ refresh: false });
+});
+
 if (!store.available) $('storageNote').hidden = false;
 render();
 boot();

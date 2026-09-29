@@ -350,6 +350,25 @@ const scenarios = {
     };
   },
 
+  // Another tab removes the playing song's playlist: the song keeps playing, and its playlist's songs leave the list.
+  async 'rotation-other-tab'() {
+    await import('/app.js');
+    await wait(800);
+    $('playBtn').click();
+    await wait(300);
+    const playing = $('nowTitle').textContent;
+    const loadsBefore = calls.loadVideoById.length;
+    const rot = saved();
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...rot, sources: [] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(300);
+    return {
+      pass: document.querySelectorAll('.song').length === 0 && $('nowTitle').textContent === playing
+        && calls.loadVideoById.length === loadsBefore && $('plName').textContent === 'No playlist loaded',
+      songs: document.querySelectorAll('.song').length, playing, now: $('nowTitle').textContent,
+    };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');
