@@ -188,7 +188,8 @@ const scenarios = {
     };
   },
 
-  // ▼ swaps a queued song with the next one; tapping a queued song moves it to the top without playing.
+  // ▼ swaps a queued song with the next one; tapping a queued song plays it now,
+  // and the songs it passed stay in the queue.
   async 'queue-move-jump'() {
     // five different songs at weight 1, so every queue position holds a distinct song
     localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: C }, endMode: 'shuffle' }));
@@ -198,18 +199,16 @@ const scenarios = {
     document.querySelector('#queueList .qitem [data-dir="1"]').click();
     await wait(100);
     const idsAfter = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
-    const titleBefore = $('nowTitle').textContent;
     const third = document.querySelectorAll('#queueList .qitem')[2];
     const thirdId = third.dataset.id;
     third.querySelector('.qplay').click();
     await wait(100);
-    const idsTop = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
+    const idsNow = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
     return {
       pass: idsAfter[0] === idsBefore[1] && idsAfter[1] === idsBefore[0]
-        && idsTop[0] === thirdId && idsTop.length === idsAfter.length
-        && idsTop[1] === idsAfter[0] && idsTop[2] === idsAfter[1]
-        && calls.loadVideoById.length === 0 && $('nowTitle').textContent === titleBefore,
-      idsBefore, idsAfter, idsTop, loaded: calls.loadVideoById,
+        && calls.loadVideoById.at(-1) === thirdId && $('nowTitle').textContent === `Title ${thirdId}`
+        && idsNow[0] === idsAfter[0] && idsNow[1] === idsAfter[1] && idsNow[2] === idsAfter[3],
+      idsBefore, idsAfter, idsNow, loaded: calls.loadVideoById,
     };
   },
 

@@ -342,9 +342,10 @@ function togglePlay() {
   else player.resume();
 }
 
-// Queue box: tap a queued song to move it to the top of the queue.
-function moveToTop(where, index) {
-  if (queue.moveToTop(where, index)) render();
+// Queue box: tap a queued song to play it now. It moves to the top and plays;
+// the songs it passed stay in the queue.
+function playFromQueue(where, index) {
+  if (player && queue.moveToTop(where, index)) next();
 }
 
 function moveInQueue(where, index, dir) {
@@ -460,7 +461,7 @@ function render() {
 // ---------- events ----------
 
 setupSongList($('songs'), { onPlayNow: playNow, onWeight: setWeight, onRemove: removeSong, onQueue: addToQueue });
-setupQueue($('queueList'), { onToTop: moveToTop, onMove: moveInQueue });
+setupQueue($('queueList'), { onPlay: playFromQueue, onMove: moveInQueue });
 setupEndModeButtons($('endMode'), mode => {
   queue.endMode = mode;
   settings.endMode = mode;

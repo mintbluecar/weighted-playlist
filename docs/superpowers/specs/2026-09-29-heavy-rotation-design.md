@@ -145,7 +145,7 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 - Advances automatically when a song ends (player state `ENDED`).
 - **Up next** is a box listing the next 10 plays (thumbnail, title, channel), scrolling inside itself, with a "New loop" divider where the next loop starts and "Playback stops here." in stop mode. It sits under the player (in the pinned left column on desktop; below the pinned player on phones).
   - **▲▼** swap a song with its neighbour, within its own loop only (so each loop keeps its weighted counts). A manual order is replaced when the rest of the loop is rebuilt (weight change, removal, play now).
-  - **Tap a queued song** to move it to the top of the queue (it does not start playing). A song from the next loop moves into this loop, and the next loop plays it one time fewer.
+  - **Tap a queued song** to play it now: it moves to the top and starts, interrupting the current song; the songs it passed stay in the queue. A song from the next loop moves into this loop, and the next loop plays it one time fewer.
 - **Add to queue** (queue icon on each song row, tooltip "Add to queue") puts the song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
 - The player shows `Loop {n} · {position} of {len}`.
 - **Changing a weight** keeps the current song playing and rebuilds the rest of the loop right away.
