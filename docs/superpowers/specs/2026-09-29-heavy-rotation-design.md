@@ -195,7 +195,7 @@ A wide, low strip across the top of the page, above the player and the song list
 
 - Holds up to **20** creatures. A new creature can briefly be the 21st; when its play counts, the smallest creature (fewest plays, then least recently played; never the current song's) walks out of the pen.
 - When the pen is full, the header reads **"Your top 20 songs"**. Otherwise it shows only the title.
-- Empty state: "Press play and your songs show up here."
+- Empty state: "Grow your crew by playing songs!"
 - Each creature has a small tag with its song title.
 - **Hover** (or tap on phones, shown for about 2 seconds) shows the song title and "Played 1 time" / "Played X times".
 - No floating words: no "hatched", "+1" or "evolved" text.
