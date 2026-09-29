@@ -4,6 +4,7 @@
   --ink:#16202a; --ink-2:#4f5d6b; --ink-3:#7c8995;
   --accent:#0e7c7b; --accent-ink:#ffffff; --accent-soft:#d5efee;
   --warn:#b4540f; --warn-soft:#fbe8d8;
+  --danger:#c62828; --danger-soft:#fde4e4;
   --bar:#0e7c7b; --bar-track:#e3e8ec; --floor:#e2e9e4;
   --shadow:0 1px 2px rgba(22,32,42,.06),0 8px 24px rgba(22,32,42,.06);
   --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
@@ -17,6 +18,7 @@
     --ink:#e7edf1; --ink-2:#a7b4be; --ink-3:#7a8893;
     --accent:#3cc1bd; --accent-ink:#06201f; --accent-soft:#163b3b;
     --warn:#f0a063; --warn-soft:#3a2617;
+    --danger:#ff6b6b; --danger-soft:#3b1a1c;
     --bar:#3cc1bd; --bar-track:#24313a; --floor:#1b2a27;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
   }
@@ -246,7 +248,14 @@ ol.sources{list-style:none;margin:0;padding:0}
 .source .thumb img{display:block;width:100%;height:100%;object-fit:cover}
 .source .btn{height:36px;font-size:13.5px}
 .manage .empty{margin:0;padding:14px;font-size:13.5px;color:var(--ink-3)}
-.danger{display:flex;justify-content:center}
+.danger-zone{display:flex;justify-content:center}
+.btn.danger{position:relative;color:var(--danger);border-color:var(--danger);background:none}
+.btn.danger:hover,.btn.danger:focus-visible{background:var(--danger-soft)}
+.btn.danger.solid{background:var(--danger);color:var(--surface)}
+.btn.danger.solid:hover,.btn.danger.solid:focus-visible{filter:brightness(1.08)}
+.btn[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.3;padding:6px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;z-index:10}
+.btn[data-tip]:hover::after,.btn[data-tip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+@media (hover:none){.btn[data-tip]::after{display:none}}
 .confirm{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;font-size:14px}
 
 @media (max-width:760px){
