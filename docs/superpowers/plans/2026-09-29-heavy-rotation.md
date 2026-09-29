@@ -24,7 +24,9 @@
 
 ## Review Focus
 
-1. **A song shorter than 30 seconds that plays to its natural end** should count as a play. Otherwise short songs could never hatch permanently. Test in Task 5 (`endPlay({ finished: true })`).
+Songs shorter than 30 seconds are out of scope (owner's decision): they never count, like any play under 30 seconds.
+
+1. **A song whose creature is still walking out of the pen gets played again** should hatch a fresh creature, not leave a stuck one behind. Handled in Task 9 (`#hatch` removes the old element); check it in the Task 9 manual steps.
 2. **Links with tracking parameters or stray spaces** (`?si=…`, `&t=42s`, pasted with leading spaces) should parse like clean links. Test in Task 1.
 3. **Odd weight input** (blank, 0, negative, decimal, letters, 150) should become a whole number from 1 to 99, never `NaN`. Test in Task 2.
 4. **A playlist with one song, or one song that dominates the weights,** should still build a loop with exact counts and never hang. Test in Task 3.
@@ -869,7 +871,7 @@ git commit -m "feat: guarded browser storage for weights and settings"
 - Produces: `class Crew` with:
   - `startPlay(id) → event[]` (ends any unfinished play first)
   - `tick(seconds) → event[]` (call only while actually playing)
-  - `endPlay({ finished = false }) → event[]` (`finished` = the song played to its natural end)
+  - `endPlay() → event[]` (the play ended: it reverts unless it already counted)
   - `plays(id)` (counted plays), `displayPlays(id)` (includes the play in progress), `sizeOf(id)`, `isFull`
   - events: `{ type: 'hatch' | 'evolve' | 'count' | 'shrink' | 'poof' | 'leave', id }`
 
@@ -928,13 +930,12 @@ test('skipping an existing song before 30 seconds shrinks it back', () => {
   assert.equal(crew.sizeOf('a'), 26);
 });
 
-test('a short song that plays to its end still counts', () => {
+test('ending a play that already counted changes nothing', () => {
   const crew = new Crew();
-  crew.startPlay('a');
-  crew.tick(12);
-  assert.deepEqual(types(crew.endPlay({ finished: true })), ['count:a']);
-  assert.equal(crew.plays('a'), 1);
+  countedPlay(crew, 'a');
+  assert.deepEqual(crew.endPlay(), []);
   assert.deepEqual(crew.endPlay(), [], 'nothing left to end');
+  assert.equal(crew.plays('a'), 1);
 });
 
 test('the pen can briefly hold one extra; the smallest leaves when the play counts', () => {
@@ -999,6 +1000,7 @@ Expected: FAIL with `Cannot find module` for `crew.js`.
 
 ```js
 // Crew rules: which creature a song gets, and how plays hatch, grow, count and revert.
+// A play counts only after 30 seconds of playback; shorter songs never count (out of scope).
 // No DOM here; crew-view.js draws the pen from the events these methods return.
 export const PEN_LIMIT = 20;
 export const COUNT_AFTER_SECONDS = 30;
@@ -1092,11 +1094,10 @@ export class Crew {
     return p.heard >= this.countAfter ? this.#count(p) : [];
   }
 
-  endPlay({ finished = false } = {}) {
+  endPlay() {
     const p = this.play;
     this.play = null;
     if (!p || p.counted) return [];
-    if (finished) return this.#count(p);
     const member = this.members.get(p.id);
     if (member?.provisional) {
       this.members.delete(p.id);
@@ -2589,7 +2590,7 @@ with:
   queue = newQueue();
 ```
 
-- [ ] **Step 5: Hatch or evolve when a song actually starts playing; count a song that plays to its end**
+- [ ] **Step 5: Hatch or evolve when a song actually starts playing; end the play when the song ends**
 
 Replace:
 ```js
@@ -2609,7 +2610,7 @@ function onStateChange(s) {
     crewView.apply(crew.startPlay(queue.current));
   }
   if (s === STATE.ENDED) {
-    crewView.apply(crew.endPlay({ finished: true }));
+    crewView.apply(crew.endPlay());
     next();
   }
   render();
