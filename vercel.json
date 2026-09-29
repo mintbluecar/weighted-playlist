@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "autoplay=(self \"https://www.youtube.com\"), encrypted-media=(self \"https://www.youtube.com\"), picture-in-picture=(self \"https://www.youtube.com\"), fullscreen=(self \"https://www.youtube.com\"), clipboard-write=(self \"https://www.youtube.com\")"
+        }
+      ]
+    }
+  ]
+}

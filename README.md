@@ -12,6 +12,10 @@ Then open http://localhost:8000. On a phone on the same Wi-Fi, open `http://<thi
 
 Tests: `node --test`. Browser checks of `app.js` against a fake YouTube player (needs Google Chrome on macOS): `tests/browser/run.sh`
 
+## Deploy
+
+Hosted on Vercel, imported from this GitHub repo (same setup as `4benies-tracker`): every push to `main` redeploys. No build step; Vercel serves the files as they are. `vercel.json` sends a `Permissions-Policy` header that lets the embedded YouTube player use autoplay, encrypted media, picture-in-picture and fullscreen.
+
 ## Assets
 
 Creature art is from Kenney's **New Platformer Pack** (CC0): https://kenney.nl/assets/new-platformer-pack
