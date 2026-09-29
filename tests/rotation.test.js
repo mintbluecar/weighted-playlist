@@ -186,24 +186,7 @@ test('reordering the next loop carries into the loop that actually plays', () =>
   assert.deepEqual([q.next(), q.next()], [next[1], next[0]]);
 });
 
-test('jumpTo plays a later song in this loop and carries on from there', () => {
-  const q = queueWith([['a', 1], ['b', 1], ['c', 1], ['d', 1]]);
-  const first = q.start();
-  const target = q.loop[3];
-  assert.equal(q.jumpTo('this', 3), target);
-  assert.equal(q.current, target);
-  assert.equal(q.position, 4);
-  assert.equal(q.previous(), first);
-});
 
-test('jumpTo into the next loop starts that loop at the chosen song', () => {
-  const q = queueWith([['a', 1], ['b', 1]]);
-  q.start();
-  const target = songsOf(q.queueItems(10)).find(i => i.where === 'next' && i.index === 1).id;
-  assert.equal(q.jumpTo('next', 1), target);
-  assert.equal(q.loopNumber, 2);
-  assert.equal(q.position, 2);
-});
 
 test('playNext puts a song at the top of the queue as an extra play', () => {
   const q = queueWith([['a', 1], ['b', 1], ['c', 1]]);
@@ -221,4 +204,27 @@ test('playNext before anything has played makes that song play first', () => {
   const q = queueWith([['a', 1], ['b', 1]]);
   q.playNext('b');
   assert.equal(q.start(), 'b');
+});
+
+test('moveToTop puts a queued song first without playing it', () => {
+  const q = queueWith([['a', 1], ['b', 1], ['c', 1], ['d', 1]]);
+  const first = q.start();
+  const target = q.loop[3];
+  const others = [q.loop[1], q.loop[2]];
+  assert.equal(q.moveToTop('this', 3), true);
+  assert.equal(q.current, first);
+  assert.equal(q.loopLength, 4);
+  assert.deepEqual([q.next(), q.next(), q.next()], [target, ...others]);
+});
+
+test('moveToTop brings a song from the next loop into this one; the next loop plays it one time fewer', () => {
+  const q = queueWith([['a', 1], ['b', 1]]);
+  q.start();
+  const restOfThisLoop = q.loop[1];
+  const nextLoop = songsOf(q.queueItems(10)).filter(i => i.where === 'next').map(i => i.id);
+  assert.equal(q.moveToTop('next', 1), true);
+  assert.equal(q.queueItems(1)[0].id, nextLoop[1]);
+  assert.deepEqual([q.next(), q.next(), q.next()], [nextLoop[1], restOfThisLoop, nextLoop[0]]);
+  assert.equal(q.loopLength, 1, 'the next loop lost the moved play');
+  assert.equal(q.moveToTop('this', 99), false);
 });

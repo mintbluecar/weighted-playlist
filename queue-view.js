@@ -1,5 +1,5 @@
 // The "Up next" box: the next plays, a divider where the next loop starts,
-// ▲▼ to reorder within a loop, and tap a song to jump to it.
+// ▲▼ to reorder within a loop, and tap a song to move it to the top of the queue.
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -7,7 +7,7 @@ function el(tag, className, text) {
   return node;
 }
 
-export function setupQueue(listEl, { onJump, onMove }) {
+export function setupQueue(listEl, { onToTop, onMove }) {
   listEl.addEventListener('click', e => {
     const button = e.target.closest('button');
     const item = button?.closest('.qitem');
@@ -15,7 +15,7 @@ export function setupQueue(listEl, { onJump, onMove }) {
     const where = item.dataset.where;
     const index = Number(item.dataset.index);
     if (button.dataset.dir) onMove(where, index, Number(button.dataset.dir));
-    else if (button.classList.contains('qplay')) onJump(where, index);
+    else if (button.classList.contains('qplay')) onToTop(where, index);
   });
 }
 
@@ -37,7 +37,7 @@ export function renderQueue(listEl, items) {
 
     const play = el('button', 'qplay');
     play.type = 'button';
-    play.setAttribute('aria-label', `Play ${item.title} now`);
+    play.setAttribute('aria-label', `Move ${item.title} to the top of the queue`);
     const thumb = el('span', 'thumb');
     if (item.thumbnail) {
       const img = el('img');

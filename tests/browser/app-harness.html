@@ -7,11 +7,12 @@
 const scenario = new URLSearchParams(location.search).get('scenario');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const A = 'PLAAAA', B = 'PLBBBB', A1 = 'aaaaaaaaaa1', A2 = 'aaaaaaaaaa2', B1 = 'bbbbbbbbbb1';
+const C = 'PLCCCC', CS = [1, 2, 3, 4, 5].map(n => `cccccccccc${n}`);
 const realFetch = window.fetch.bind(window);
 
 // ---- fake YouTube IFrame API ----
-const playlists = { [A]: [A1, A2], [B]: [B1] };
-const cueDelay = { [A]: 20, [B]: 20 };
+const playlists = { [A]: [A1, A2], [B]: [B1], [C]: CS };
+const cueDelay = { [A]: 20, [B]: 20, [C]: 20 };
 const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0 };
 window.YT = {
   Player: class {
@@ -187,22 +188,28 @@ const scenarios = {
     };
   },
 
-  // ▼ swaps a queued song with the next one; tapping a queued song plays it.
+  // ▼ swaps a queued song with the next one; tapping a queued song moves it to the top without playing.
   async 'queue-move-jump'() {
+    // five different songs at weight 1, so every queue position holds a distinct song
+    localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: C }, endMode: 'shuffle' }));
     await import('/app.js');
     await wait(800);
     const idsBefore = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
     document.querySelector('#queueList .qitem [data-dir="1"]').click();
     await wait(100);
     const idsAfter = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
-    const target = document.querySelectorAll('#queueList .qitem')[1];
-    const targetId = target.dataset.id;
-    target.querySelector('.qplay').click();
+    const titleBefore = $('nowTitle').textContent;
+    const third = document.querySelectorAll('#queueList .qitem')[2];
+    const thirdId = third.dataset.id;
+    third.querySelector('.qplay').click();
     await wait(100);
+    const idsTop = [...document.querySelectorAll('#queueList .qitem')].map(li => li.dataset.id);
     return {
-      pass: idsAfter[0] === idsBefore[1] && idsAfter[1] === idsBefore[0] && calls.loadVideoById.at(-1) === targetId
-        && $('nowTitle').textContent === `Title ${targetId}`,
-      idsBefore, idsAfter, loaded: calls.loadVideoById,
+      pass: idsAfter[0] === idsBefore[1] && idsAfter[1] === idsBefore[0]
+        && idsTop[0] === thirdId && idsTop.length === idsAfter.length
+        && idsTop[1] === idsAfter[0] && idsTop[2] === idsAfter[1]
+        && calls.loadVideoById.length === 0 && $('nowTitle').textContent === titleBefore,
+      idsBefore, idsAfter, idsTop, loaded: calls.loadVideoById,
     };
   },
 

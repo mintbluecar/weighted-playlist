@@ -157,20 +157,22 @@ export class Queue {
     return true;
   }
 
-  // Play a queued song now; the songs before it are skipped.
-  jumpTo(where, index) {
+  // Move a queued song to the top of the queue without playing it. A song from the next loop
+  // moves into this loop, so the next loop plays it one time fewer.
+  moveToTop(where, index) {
+    const top = this.pos + 1;
     if (where === 'next') {
-      if (this.endMode === 'stop' || !this.#peekNextLoop()[index]) return null;
-      if (this.current) this.#remember(this.current);
-      this.loop = this.#takeNextLoop();
-      this.loopNumber++;
-    } else {
-      if (index <= this.pos || index >= this.loop.length) return null;
-      if (this.current) this.#remember(this.current);
+      if (this.endMode === 'stop') return false;
+      const next = this.#peekNextLoop();
+      if (index < 0 || index >= next.length) return false;
+      const [id] = next.splice(index, 1);
+      this.loop.splice(top, 0, id);
+      return true;
     }
-    this.pos = index;
-    this.current = this.loop[index];
-    return this.current;
+    if (index < top || index >= this.loop.length) return false;
+    const [id] = this.loop.splice(index, 1);
+    this.loop.splice(top, 0, id);
+    return true;
   }
 
   // Put a song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
