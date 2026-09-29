@@ -54,14 +54,6 @@ test('start and next walk through a loop, then begin loop 2', () => {
   assert.equal(q.position, 1);
 });
 
-test('same order replays the identical loop', () => {
-  const q = queueWith([['a', 2], ['b', 1], ['c', 1]]);
-  q.endMode = 'same';
-  const first = [q.start(), q.next(), q.next(), q.next()];
-  const second = [q.next(), q.next(), q.next(), q.next()];
-  assert.deepEqual(second, first);
-});
-
 test('stop mode returns null at the end, and start begins a new loop', () => {
   const q = queueWith([['a', 1], ['b', 1]]);
   q.endMode = 'stop';

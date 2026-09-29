@@ -89,7 +89,7 @@ export class Queue {
     }
     this.pos++;
     if (this.pos >= this.loop.length) {
-      this.loop = this.endMode === 'same' ? this.loop : this.#takeNextLoop();
+      this.loop = this.#takeNextLoop();
       this.loopNumber++;
       if (this.endMode === 'stop' || !this.loop.length) {
         this.pos = -1;
@@ -148,7 +148,6 @@ export class Queue {
   }
 
   #peekNextLoop() {
-    if (this.endMode === 'same') return this.loop;
     this.nextLoopCache ??= this.#build(this.counts, this.loop.at(-1));
     return this.nextLoopCache;
   }

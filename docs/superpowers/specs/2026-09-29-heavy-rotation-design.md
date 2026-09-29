@@ -21,7 +21,7 @@ It is for the owner's own listening, in a desktop or phone browser. Every play i
 **In scope (v1)**
 - Load a YouTube playlist (up to 200 videos) and add single videos on top.
 - Whole-number weights per song, and a weighted loop built from them.
-- End-of-loop behaviour toggle: new shuffle / same order / stop.
+- End-of-loop behaviour toggle: new shuffle / stop.
 - Play, pause, next, previous, play-now, up-next preview.
 - Weights and extra videos saved in the browser, per playlist.
 - Responsive layout, light and dark themes.
@@ -134,7 +134,6 @@ The list header shows `{songs} songs · {len} plays per loop`.
 | Icon | Tooltip | Behaviour |
 |---|---|---|
 | shuffle arrows | New shuffle each loop | build a new loop (default) |
-| repeat loop | Repeat the same order | replay the same loop |
 | square | Stop after this loop | stop when the loop ends |
 
 Tooltips show on hover or keyboard focus; on touch screens, tapping an icon selects it and shows the tooltip for about 1.5 seconds. The choice is saved.
@@ -243,7 +242,7 @@ A box under the player (**The crew**) where small creatures walk around, one per
 - `links.js`: every link shape in the table above, host variants, missing scheme, invalid input.
 - `weights.js`: plays per loop including divisor reduction; frequency text for each rule.
 - `crew.js`: a play shows immediately but counts only after 30 s of playback; paused time doesn't count; skipping before 30 s reverts (new creature removed, existing one back to its previous size); pen limit and eviction order; the current song's creature is never evicted; the same video ID always maps to the same model and variant.
-- `rotation.js`: each song appears exactly its number of plays; no back-to-back repeats where avoidable (checked over many random loops); no repeat across the join between loops; same-order mode reuses the loop.
+- `rotation.js`: each song appears exactly its number of plays; no back-to-back repeats where avoidable (checked over many random loops); no repeat across the join between loops; a saved end mode that no longer exists falls back to new shuffle.
 
 **Manual, in a real browser**
 - A real playlist loads, and titles and the playlist name appear.

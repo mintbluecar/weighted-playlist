@@ -30,6 +30,8 @@ test('settings round-trip, with defaults and a bad end mode', () => {
   assert.deepEqual(store.loadSettings(), { lastSource: { type: 'playlist', id: 'PL1' }, endMode: 'stop' });
   backend.setItem('hr:settings', JSON.stringify({ endMode: 'sideways' }));
   assert.equal(store.loadSettings().endMode, 'shuffle');
+  backend.setItem('hr:settings', JSON.stringify({ endMode: 'same' })); // option removed
+  assert.equal(store.loadSettings().endMode, 'shuffle');
 });
 
 test('saved weights are cleaned up on load', () => {

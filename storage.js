@@ -4,7 +4,7 @@ import { clampWeight } from './weights.js';
 
 export const MINE = 'mine';
 const SETTINGS_KEY = 'hr:settings';
-const END_MODES = ['shuffle', 'same', 'stop'];
+const END_MODES = ['shuffle', 'stop'];
 
 export const playlistKey = id => `hr:playlist:${id}`;
 
