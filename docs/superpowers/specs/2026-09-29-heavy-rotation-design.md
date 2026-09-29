@@ -61,7 +61,7 @@ weighted-playlist/
   youtube.js      wraps YouTube's IFrame Player API and oEmbed title lookups
   crew.js         crew rules: play counting, hatch/grow/revert, pen limit (no DOM)
   crew-view.js    draws the pen and moves the creatures
-  assets/kenney/  creature SVGs from Kenney's New Platformer Pack, plus its License.txt
+  assets/kenney/  the 47 creature SVGs used from Kenney's New Platformer Pack, plus its License.txt
   tests/          automated tests for links.js, weights.js, rotation.js and crew.js
   docs/           this spec and the mockup
 ```
@@ -170,7 +170,7 @@ A box under the player (**The crew**) where small creatures walk around, one per
 
 ### Art
 
-- Kenney's **New Platformer Pack** (CC0; `License.txt` in the pack says "Creative Commons Zero, CC0"), downloaded by the owner. Stored in `assets/kenney/`.
+- Kenney's **New Platformer Pack** (CC0; `License.txt` in the pack says "Creative Commons Zero, CC0"), downloaded by the owner. Only the 47 SVG frames the crew uses are kept, in `assets/kenney/` with the pack's `License.txt`.
 - **10 creature models:** astronaut, slime, spike slime, block slime, snail, ladybug, mouse, worm, frog, bee.
 - **Frames per model:** idle, walk A, walk B, and rest. The frog's walk frames are idle and jump; the astronaut's rest frame is its crouch.
 - **Colour variants:** the astronaut uses the pack's 5 colours; the other models use 5 hue shifts (0°, 70°, 150°, 220°, 300°).
