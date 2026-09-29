@@ -1,6 +1,6 @@
 // Wires the page together: link bar, playlist loading, weights, playback and saving.
 import { parseLink, isMix } from './links.js';
-import { clampWeight, playsPerLoop, frequencyText, compareSongs } from './weights.js';
+import { clampWeight, playsPerLoop, compareSongs } from './weights.js';
 import { Queue } from './rotation.js';
 import { createStore, titlesToLookUp } from './storage.js';
 import { listHeading } from './sources.js';
@@ -9,6 +9,7 @@ import { setupSongList, renderSongs, flashRow } from './songs-view.js';
 import { setupEndModeButtons, renderPlayer } from './player-view.js';
 import { setupQueue, renderQueue } from './queue-view.js';
 import { setupManage } from './manage-view.js';
+import { songRows, listMetaText, queueRows, manageData, failedMessage } from './view-models.js';
 import { createNotice } from './dom.js';
 import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
@@ -253,12 +254,6 @@ function loadTitles(ids, { force = false } = {}) {
   }).catch(() => {}); // lookups never throw (fetchInfo returns null); this guards the saving and drawing
 }
 
-function failedMessage(listIds) {
-  const names = listIds.map(id => rotation.sourceInfo[id]?.title ?? 'A playlist');
-  const which = names.length === 1 ? `${names[0]} couldn't` : `${names.length} playlists couldn't`;
-  return `${which} be loaded. It may be private or deleted. Its songs are hidden until it loads again.`;
-}
-
 // "Loading your playlists" shows while any read of the rotation's playlists is running.
 let loadingReads = 0;
 function setLoading(delta) {
@@ -274,7 +269,7 @@ async function loadRotation() {
   if (toRead.length) setLoading(-1);
   rebuildSongs();
   const failed = results.filter(([, result]) => result === 'error').map(([id]) => id);
-  if (failed.length) showStatus(failedMessage(failed), 'err');
+  if (failed.length) showStatus(failedMessage(failed, rotation.sourceInfo), 'err');
   toRead.forEach(refreshSourceTitle);
 }
 
@@ -370,15 +365,8 @@ function startOver() {
   rebuildSongs();
 }
 
-function manageData() {
-  return {
-    sources: rotation.sources.map(id => ({ id, ...rotation.sourceInfo[id], syncing: state.syncing.has(id) })),
-    extras: rotation.extras.map(id => ({ id, ...titleCache[id], ...songInfo(id) })),
-  };
-}
-
 const manage = setupManage($('manageDialog'), {
-  getData: manageData,
+  getData: () => manageData(rotation, state.syncing, id => ({ ...titleCache[id], ...songInfo(id) })),
   addPlaylist,
   removeSource,
   restoreSource,
@@ -514,29 +502,13 @@ function scheduleRender() {
 }
 
 function render() {
-  const songs = playable();
-  const { counts, length } = playsPerLoop(songs);
-  const total = songs.reduce((sum, s) => sum + s.weight, 0);
-  renderSongs($('songs'), state.order.map(id => {
-    const s = state.songs.get(id);
-    const plays = counts.get(id) ?? 0;
-    return {
-      id,
-      title: s.title ?? id,
-      author: s.author,
-      thumbnail: s.thumbnail,
-      weight: s.weight,
-      blocked: s.blocked,
-      current: id === queue.current,
-      share: total && !s.blocked ? s.weight / total : 0,
-      freq: plays ? frequencyText(plays, length) : '',
-    };
-  }));
+  const { rows, loopLength } = songRows(state.songs, state.order, queue.current);
+  renderSongs($('songs'), rows);
   const heading = listHeading(rotation.sources.map(id => rotation.sourceInfo[id] ?? {}), rotation.extras.length);
   const empty = !rotation.sources.length && !state.songs.size;
   $('plName').textContent = empty ? 'No playlist loaded' : heading.title;
   $('plOwner').textContent = empty ? '' : heading.owner;
-  $('listMeta').textContent = state.songs.size ? `${state.songs.size} songs · ${length} plays per loop` : '';
+  $('listMeta').textContent = listMetaText(state.songs.size, loopLength);
 
   const current = queue.current ? songInfo(queue.current) : null;
   renderPlayer(playerEls, {
@@ -548,23 +520,7 @@ function render() {
     showEmpty: !current,
     emptyText: state.songs.size ? 'Press play to start.' : 'Paste a playlist link above, then press play.',
   });
-  const items = state.songs.size ? queue.queueItems(10) : [];
-  let number = 0;
-  renderQueue($('queueList'), items.map((item, i) => {
-    if (item.type !== 'song') return item;
-    const song = songInfo(item.id);
-    const before = items[i - 1];
-    const after = items[i + 1];
-    return {
-      ...item,
-      number: ++number,
-      title: song?.title ?? item.id,
-      author: song?.author ?? '',
-      thumbnail: song?.thumbnail ?? '',
-      canUp: before?.type === 'song' && before.where === item.where,
-      canDown: after?.type === 'song' && after.where === item.where,
-    };
-  }));
+  renderQueue($('queueList'), queueRows(state.songs.size ? queue.queueItems(10) : [], songInfo));
   crewView.setCurrent(queue.current);
   crewView.setPaused(state.playerState !== STATE.PLAYING);
   crewView.refreshTitles();
