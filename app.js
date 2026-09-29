@@ -15,6 +15,8 @@ import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
 
 const $ = id => document.getElementById(id);
+// Optional settings a page can set before loading this script (the browser tests use a short read timeout).
+const config = globalThis.loopsidedConfig ?? {};
 
 let backend = null;
 try {
@@ -624,7 +626,7 @@ async function boot() {
     const YT = await loadYouTubeApi();
     [player, reader] = await Promise.all([
       createPlayer(YT, 'ytPlayer', { onStateChange, onError }),
-      createReader(YT, $('ytReader')),
+      createReader(YT, $('ytReader'), { readTimeoutMs: config.readTimeoutMs }),
     ]);
   } catch {
     if (waitingForPlayer) setLoading(-1);

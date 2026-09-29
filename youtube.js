@@ -115,7 +115,7 @@ function wrapPlayer(yt, lastCuedAt) {
 // YouTube may still answer a read that timed out; the player can't say which playlist an answer
 // is for (the API has no playlist-ID getter), so after a timeout the player is destroyed and
 // replaced, and a late answer can't be taken as the next read's.
-export async function createReader(YT, container) {
+export async function createReader(YT, container, { readTimeoutMs = 10000 } = {}) {
   let player = null;
   async function fresh() {
     const slot = document.createElement('div');
@@ -127,7 +127,7 @@ export async function createReader(YT, container) {
     async listPlaylist(listId) {
       if (!player) await fresh(); // the last replacement didn't start; try again
       try {
-        return await player.listPlaylist(listId);
+        return await player.listPlaylist(listId, { timeoutMs: readTimeoutMs });
       } catch (err) {
         player.destroy();
         player = null;
