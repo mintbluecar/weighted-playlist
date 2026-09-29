@@ -87,7 +87,7 @@ function createRow(id) {
   inc.setAttribute('aria-label', 'Raise weight');
   stepper.append(dec, input, inc);
   const wrap = el('div', 'more-wrap');
-  const more = el('button', 'more', '⋯');
+  const more = el('button', 'more', '⋮');
   more.type = 'button';
   more.dataset.role = 'menu';
   more.setAttribute('aria-haspopup', 'menu');

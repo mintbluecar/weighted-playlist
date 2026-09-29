@@ -35,7 +35,7 @@ header.top{display:flex;flex-direction:column;align-items:center;gap:14px;text-a
 .brand{font-family:var(--display);font-size:clamp(30px,6vw,40px);line-height:1.05;letter-spacing:-.02em;margin:0}
 .brand .loop{font-weight:800;color:var(--accent)}
 .brand .sided{display:inline-block;font-weight:300;transform:rotate(-4deg) translateY(2px);transform-origin:left bottom}
-.tagline{margin:0;font-size:14px;color:var(--ink-2);max-width:46ch;text-wrap:pretty}
+.tagline{margin:0;font-size:14px;color:var(--ink-2);text-wrap:pretty}
 form.load{display:flex;gap:8px;width:100%;max-width:640px}
 .field{flex:1;min-width:0;height:42px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-size:14px}
 .btn{height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600;white-space:nowrap}
@@ -111,9 +111,9 @@ ol.songs{list-style:none;margin:0;padding:0}
 .share i{display:block;height:100%;background:var(--bar);border-radius:3px;transition:width .3s}
 .stats .freq{color:var(--ink)}
 .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
-.stepper button{width:40px;height:40px;border:0;background:none;font-size:20px;line-height:1;color:var(--ink)}
+.stepper button{width:30px;height:36px;border:0;background:none;font-size:20px;line-height:1;color:var(--ink)}
 .stepper button:disabled{color:var(--ink-3);cursor:default}
-.stepper input{width:44px;height:40px;border:0;border-inline:1px solid var(--line);background:var(--surface);text-align:center;font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.stepper input{width:34px;height:36px;border:0;border-inline:1px solid var(--line);background:var(--surface);text-align:center;font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
 .stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px}
 .badge.now{background:var(--accent);color:var(--accent-ink)}
@@ -125,7 +125,7 @@ form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)
 @keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
 
 .song .more-wrap{position:relative}
-.song .more{width:34px;height:34px;border:0;border-radius:8px;background:none;color:var(--ink-2);font-size:20px;line-height:1}
+.song .more{width:24px;height:34px;border:0;border-radius:8px;background:none;color:var(--ink-2);font-size:20px;line-height:1}
 .song .more:hover,.song .more:focus-visible,.song .more[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
 .song .menu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:190px;display:grid;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
 .song .menu button{border:0;background:none;text-align:left;padding:9px 12px;border-radius:7px;font-size:14px;color:var(--ink)}

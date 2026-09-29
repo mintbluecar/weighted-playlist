@@ -112,7 +112,7 @@ The list is a **rotation**: one or more YouTube playlists plus single videos add
 - A **⚙ settings icon** beside the header opens the manage page; tooltip **"Manage playlists"**.
 - Wording that makes the one-way rule clear:
   - Bottom add box placeholder: "Add a song to this list (your YouTube playlist won't change)".
-  - Song ⋯ menu: **Remove from this list**; the note reads "Removed <title>. Still on YouTube." with Undo.
+  - Song ⋮ menu: **Remove from this list**; the note reads "Removed <title>. Still on YouTube." with Undo.
 - If the rotation changes in another tab (the manage page), the player re-reads it without interrupting the playing song.
 
 ### Manage page (`manage.html`)
@@ -178,7 +178,7 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 - **Up next** is a box listing the next 10 plays (thumbnail, title, channel), scrolling inside itself, with a "New loop" divider where the next loop starts and "Playback stops here." in stop mode. It sits under the player (in the pinned left column on desktop; below the pinned player on phones).
   - **▲▼** swap a song with its neighbour, within its own loop only (so each loop keeps its weighted counts). A manual order is replaced when the rest of the loop is rebuilt (weight change, removal, play now).
   - **Tap a queued song** to play it now: it moves to the top and starts, interrupting the current song; the songs it passed stay in the queue. A song from the next loop moves into this loop, and the next loop plays it one time fewer.
-- **Add to queue** (in each song row's ⋯ menu) puts the song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
+- **Add to queue** (in each song row's ⋮ menu) puts the song at the top of the queue as an extra play; the weighted loop is otherwise unchanged.
 - The player shows `Loop {n} · {position} of {len}`.
 - **Changing a weight** keeps the current song playing and rebuilds the rest of the loop right away.
 - **Play now** plays the chosen song and starts a new loop after it.
@@ -194,7 +194,7 @@ The mockup is the reference for layout and copy.
 - **Song list header:** playlist title and owner, `{songs} songs · {len} plays per loop`, and a **Weight ⓘ** label. The ⓘ tooltip reads: "The heavier the weight, the more often a song comes around." Hover or focus shows it; on phones, tap to open and tap elsewhere to close.
 - **Song row:** title and channel (tap to play now), a `−` / number / `+` weight control sized for thumbs (number can be typed), the share bar and frequency line. The playing song is highlighted with a "Now" badge.
 - **Song menu:** each row has a ⋯ button opening a menu with **Add to queue** and **Remove from playlist** (closes on choice, outside click or Escape).
-- **Removing:** "Remove from playlist" in the ⋯ menu. The song leaves the list; a note says "Removed <title>." with **Undo**. Removed playlist songs stay out when the playlist is read again (saved as `removed`); pasting a removed song's link brings it back. A playing song that is removed finishes, then the loop continues without it. Nothing changes on YouTube (editing the YouTube playlist would need Google sign-in; out of scope).
+- **Removing:** "Remove from playlist" in the ⋮ menu. The song leaves the list; a note says "Removed <title>." with **Undo**. Removed playlist songs stay out when the playlist is read again (saved as `removed`); pasting a removed song's link brings it back. A playing song that is removed finishes, then the loop continues without it. Nothing changes on YouTube (editing the YouTube playlist would need Google sign-in; out of scope).
 - **Hover:** rows tint on hover and a ▶ appears over the thumbnail (also on keyboard focus).
 - **Sorting:** by weight, highest first, then by title. Re-sorts about a second after the last weight change so rows don't jump while tapping; the moved row briefly highlights.
 - **Themes:** light and dark, following the system setting.
