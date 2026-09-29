@@ -166,6 +166,18 @@ $('addForm').addEventListener('submit', async e => {
   note(`Added ${info?.title ?? 'the playlist'}. Its songs load when you open the player.`);
 });
 
+// Sync with YouTube: bring back songs removed here, mark remembered titles out of date, and ask the
+// player to re-read every playlist (right away if it's open in another tab, otherwise on its next load).
+$('syncBtn').addEventListener('click', () => {
+  rotation.removed = [];
+  rotation.syncAt = Date.now();
+  save();
+  for (const id of Object.keys(titleCache)) titleCache[id] = { ...titleCache[id], at: 0 };
+  store.saveTitles(titleCache);
+  render();
+  note('Synced with YouTube. Removed songs are back, and the player re-reads your playlists.');
+});
+
 $('startOver').addEventListener('click', () => {
   $('startOver').hidden = true;
   $('confirmStartOver').hidden = false;

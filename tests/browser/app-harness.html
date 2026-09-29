@@ -472,6 +472,43 @@ const scenarios = {
     return { pass: text === 'Remembered B1' && !calls.oembed.includes(B1), text, lookups: calls.oembed };
   },
 
+  // Manage page: Sync brings back removed songs, marks titles out of date, and asks the player to re-read.
+  async 'manage-sync'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [A2], sourceInfo: { [A]: { title: 'Road Trip' } } }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: Date.now() } }));
+    await import('/manage.js');
+    await wait(200);
+    $('syncBtn').click();
+    await wait(100);
+    const rot = saved();
+    const titles = JSON.parse(localStorage.getItem('hr:titles'));
+    return {
+      pass: rot.removed.length === 0 && rot.syncAt > 0 && titles[A1].at === 0
+        && $('status').textContent.startsWith('Synced with YouTube.'),
+      rot, titles, note: $('status').textContent,
+    };
+  },
+
+  // Player: a sync request from another tab re-reads playlists, brings removed songs back and refreshes titles.
+  async 'sync-other-tab'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [A], weights: {}, extras: [], removed: [A2], sourceInfo: {} }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: Date.now() } }));
+    await import('/app.js');
+    await wait(800);
+    const hiddenBefore = !document.querySelector(`.song[data-id="${A2}"]`);
+    const readsBefore = calls.cuePlaylist[A];
+    localStorage.setItem('hr:rotation', JSON.stringify({ ...saved(), removed: [], syncAt: Date.now() }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [A1]: { title: 'Remembered A1', author: '', thumbnail: '', at: 0 } }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
+    await wait(800);
+    const title = document.querySelector(`.song[data-id="${A1}"] .t`)?.textContent;
+    return {
+      pass: hiddenBefore && !!document.querySelector(`.song[data-id="${A2}"]`) && calls.cuePlaylist[A] === readsBefore + 1
+        && title === `Title ${A1}`,
+      hiddenBefore, reads: calls.cuePlaylist[A], title,
+    };
+  },
+
   // Any message can be closed with its × button.
   async 'dismiss-note'() {
     await import('/app.js');

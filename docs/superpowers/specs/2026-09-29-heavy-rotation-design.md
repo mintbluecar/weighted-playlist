@@ -122,6 +122,7 @@ Same look as the player, with a "← Back to player" link. It needs no YouTube p
 - **One card per playlist**: title, owner, song count, and a **Remove** button. Removing shows "Removed <title>." with **Undo**. A playlist that could not be read last time says "Couldn't load last time (private, deleted or a Mix)". Counts are "as of your last visit to the player".
 - **Added here** card: the single videos added in Loopsided, each with a remove button (with Undo).
 - **Add a playlist** box at the top: adds it to the rotation; its title is fetched straight away; its songs appear the next time the player loads (the card says "Songs load when you open the player").
+- **↻ Sync with YouTube** (Playlists card): brings back songs removed here, marks remembered titles out of date, and records `syncAt` so the player re-reads every playlist and looks up every title again (at once if it's open in another tab, otherwise on its next load).
 - **Start over**: clears the rotation (playlists, added songs, removed songs); asks for confirmation on the page first. Weights stay remembered. Settings (end of loop, pen collapsed) are kept.
 
 ### Removing a playlist

@@ -577,11 +577,20 @@ $('penToggle').addEventListener('click', () => {
 
 // The manage page (another tab) changed the rotation: take its version and read any new playlists.
 // Songs that leave finish if they're playing, like a removed song.
+// A Sync on the manage page also re-reads every playlist and looks up every title again.
+let handledSync = rotation.syncAt ?? 0;
 window.addEventListener('storage', e => {
   if (e.key !== 'hr:rotation') return;
   rotation = store.loadRotation();
-  if (reader) loadRotation({ refresh: false });
-  else rebuildSongs(); // boot reads the playlists once the reader is ready
+  const sync = (rotation.syncAt ?? 0) > handledSync;
+  if (sync) {
+    handledSync = rotation.syncAt;
+    Object.assign(titleCache, store.loadTitles());
+  }
+  if (!reader) return rebuildSongs(); // boot reads the playlists once the reader is ready
+  loadRotation({ refresh: sync }).then(() => {
+    if (sync) loadTitles([...state.songs.keys()]);
+  });
 });
 
 if (!store.available) $('storageNote').hidden = false;
