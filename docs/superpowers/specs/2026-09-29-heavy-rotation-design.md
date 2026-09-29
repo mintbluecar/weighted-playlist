@@ -1,4 +1,6 @@
-# Heavy Rotation — design
+# Loopsided (formerly Heavy Rotation) — design
+
+Renamed to **Loopsided** on 2026-09-29 (the Vercel name heavy-rotation was taken). Live at https://loopsided.vercel.app/. Browser storage keys keep the `hr:` prefix so saved weights carry over.
 
 Date: 2026-09-29
 Project folder: `weighted-playlist/`
@@ -155,7 +157,7 @@ Tooltips show on hover or keyboard focus; on touch screens, tapping an icon sele
 
 The mockup is the reference for layout and copy.
 
-- **Header, centred and stacked:** the name **heavy rotation** (*heavy* in extra-bold accent colour, *rotation* in a light weight), then the description, then the link bar.
+- **Header, centred and stacked:** the name **loopsided** (*loop* in extra-bold accent colour, *sided* in a light weight, tipped slightly), then the description, then the link bar.
 - **Description:** "Give your favourites more airtime. Turn up the songs you love, and they come around more often while the rest of the playlist stays in the mix."
 - **Desktop:** player and controls on the left (stays in view while scrolling), song list on the right.
 - **Phone:** stacked; the player and controls stay pinned at the top while the list scrolls.

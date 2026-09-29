@@ -1,6 +1,6 @@
-# Heavy Rotation
+# Loopsided
 
-Plays a YouTube playlist with weights, so your favourite songs come around more often. Design: [`docs/superpowers/specs/2026-09-29-heavy-rotation-design.md`](docs/superpowers/specs/2026-09-29-heavy-rotation-design.md).
+Plays a YouTube playlist with weights, so your favourite songs come around more often. Live at https://loopsided.vercel.app/ Design: [`docs/superpowers/specs/2026-09-29-heavy-rotation-design.md`](docs/superpowers/specs/2026-09-29-heavy-rotation-design.md).
 
 ## Run it
 
