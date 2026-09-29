@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Manage playlists · Loopsided</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="manage.js"></script>
+</head>
+<body>
+<div class="wrap manage">
+  <a class="back" href="./">← Back to player</a>
+  <header class="top">
+    <div class="intro">
+      <h1 class="brand"><a href="./" aria-label="Loopsided, back to player"><span class="loop">loop</span><span class="sided">sided</span></a></h1>
+      <p class="tagline">Manage the playlists in your list. Changes here never change YouTube.</p>
+    </div>
+    <form class="load" id="addForm">
+      <input class="field" id="addLink" placeholder="Paste a YouTube playlist link to add it" aria-label="YouTube playlist link to add" autocomplete="off">
+      <button class="btn primary" type="submit">Add</button>
+    </form>
+  </header>
+  <div class="status" id="status" role="status" hidden></div>
+
+  <section class="list" aria-labelledby="playlistsHeading">
+    <div class="lhead">
+      <div><h2 id="playlistsHeading">Playlists</h2><div class="owner">Song counts are from your last visit to the player.</div></div>
+    </div>
+    <ol class="sources" id="sources"></ol>
+    <p class="empty" id="sourcesEmpty" hidden>No playlists yet. Paste one above.</p>
+  </section>
+
+  <section class="list" aria-labelledby="extrasHeading">
+    <div class="lhead">
+      <div><h2 id="extrasHeading">Added here</h2><div class="owner">Single songs added in Loopsided.</div></div>
+    </div>
+    <ol class="sources" id="extras"></ol>
+    <p class="empty" id="extrasEmpty" hidden>No songs added here.</p>
+  </section>
+
+  <section class="danger">
+    <button class="btn" id="startOver" type="button">Start over</button>
+    <div class="confirm" id="confirmStartOver" hidden>
+      <span>Clear all playlists and added songs? Your weights are kept.</span>
+      <button class="btn primary" id="confirmClear" type="button">Clear list</button>
+      <button class="btn" id="cancelStartOver" type="button">Cancel</button>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    made with love by twitter user <a href="https://x.com/mintbluetoyota" target="_blank" rel="noopener">@mintbluetoyota</a>.<br>
+    creatures by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a>.
+  </footer>
+</div>
+</body>
+</html>

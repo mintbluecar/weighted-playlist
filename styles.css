@@ -230,6 +230,25 @@ footer.site-footer{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(
 footer.site-footer a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
 footer.site-footer a:hover{border-bottom-color:var(--ink-2)}
 
+/* manage page */
+.manage{max-width:760px}
+.brand a{color:inherit;text-decoration:none}
+.manage .back{justify-self:start;font-size:14px;color:var(--ink-2);text-decoration:none;padding:4px 0}
+.manage .back:hover{color:var(--accent)}
+ol.sources{list-style:none;margin:0;padding:0}
+.source{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.source:last-child{border-bottom:0}
+.source .text{flex:1;min-width:0;display:grid}
+.source .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.source .c,.source .detail{font-size:12.5px;color:var(--ink-2)}
+.source .detail.err{color:var(--warn)}
+.source .thumb{flex:none;width:56px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.source .thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.source .btn{height:36px;font-size:13.5px}
+.manage .empty{margin:0;padding:14px;font-size:13.5px;color:var(--ink-3)}
+.danger{display:flex;justify-content:center}
+.confirm{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;font-size:14px}
+
 @media (max-width:760px){
   .layout{grid-template-columns:minmax(0,1fr)}
   .left{display:contents}

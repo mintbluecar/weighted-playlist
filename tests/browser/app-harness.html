@@ -50,7 +50,8 @@ localStorage.setItem(`hr:playlist:${A}`, JSON.stringify({ weights: { [A1]: 5 }, 
 localStorage.setItem('hr:settings', JSON.stringify({ lastSource: { type: 'playlist', id: A }, endMode: 'shuffle' }));
 
 // ---- the real page ----
-const html = await (await realFetch('/index.html')).text();
+const page = scenario.startsWith('manage-') ? '/manage.html' : '/index.html';
+const html = await (await realFetch(page)).text();
 document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
 const $ = id => document.getElementById(id);
 const saved = () => JSON.parse(localStorage.getItem('hr:rotation'));
@@ -293,11 +294,60 @@ const scenarios = {
   },
 
   // The header's settings icon links to the manage page.
-  async 'manage-link'() {
+  async 'settings-link'() {
     await import('/app.js');
     await wait(300);
     const link = document.querySelector('.manage-link');
     return { pass: link?.getAttribute('href') === 'manage.html' && link.getAttribute('aria-label') === 'Manage playlists', href: link?.getAttribute('href') ?? null };
+  },
+
+  // Manage page: one card per playlist; a failed one says so; Remove + Undo edit the saved rotation.
+  async 'manage-remove-undo'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({
+      sources: [A, B], weights: { [A1]: 5 }, extras: [], removed: [],
+      sourceInfo: { [A]: { title: 'Road Trip', owner: 'Mara', count: 2, status: 'ok' }, [B]: { title: 'Chill', status: 'error' } },
+    }));
+    await import('/manage.js');
+    await wait(200);
+    const cards = [...document.querySelectorAll('#sources .source')];
+    const texts = cards.map(c => c.textContent);
+    cards[0].querySelector('button').click();
+    await wait(100);
+    const afterRemove = saved().sources;
+    const note = $('status').textContent;
+    [...$('status').querySelectorAll('button')].find(b => b.textContent === 'Undo').click();
+    await wait(100);
+    return {
+      pass: cards.length === 2 && texts[0].includes('Road Trip') && texts[0].includes('2 songs')
+        && texts[1].includes("Couldn't load last time") && afterRemove.join() === B
+        && note.startsWith('Removed Road Trip.') && saved().sources.join() === [A, B].join() && saved().weights[A1] === 5,
+      texts, afterRemove, note, final: saved().sources,
+    };
+  },
+
+  // Manage page: adding a playlist fetches its title; Start over clears the list but keeps weights.
+  async 'manage-add-start-over'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({
+      sources: [A], weights: { [A1]: 5 }, extras: [B1], removed: [], sourceInfo: { [A]: { title: 'Road Trip' } },
+    }));
+    await import('/manage.js');
+    await wait(200);
+    const addedHere = document.querySelectorAll('#extras .source').length;
+    $('addLink').value = `https://www.youtube.com/playlist?list=${C}`;
+    $('addForm').requestSubmit();
+    await wait(200);
+    const afterAdd = saved();
+    const newCard = [...document.querySelectorAll('#sources .source')].at(-1).textContent;
+    $('startOver').click();
+    $('confirmClear').click();
+    await wait(100);
+    const cleared = saved();
+    return {
+      pass: addedHere === 1 && afterAdd.sources.join() === [A, C].join() && afterAdd.sourceInfo[C].title === `Title ${C}`
+        && newCard.includes('Songs load when you open the player')
+        && cleared.sources.length === 0 && cleared.extras.length === 0 && cleared.weights[A1] === 5,
+      addedHere, afterAdd, newCard, cleared,
+    };
   },
 
   // Any message can be closed with its × button.
