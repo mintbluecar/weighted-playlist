@@ -9,6 +9,7 @@ import { setupSongList, renderSongs, flashRow } from './songs-view.js';
 import { setupEndModeButtons, renderPlayer } from './player-view.js';
 import { setupQueue, renderQueue } from './queue-view.js';
 import { setupManage } from './manage-view.js';
+import { createNotice } from './dom.js';
 import { Crew } from './crew.js';
 import { CrewView } from './crew-view.js';
 
@@ -69,48 +70,10 @@ function newQueue() {
 
 // ---------- status line ----------
 
-// Success notes clear themselves; errors and questions stay until the next action.
-const OK_NOTE_MS = 4000;
-let statusTimer = null;
-
-function showStatus(message, kind = '', actions = []) {
-  const box = $('status');
-  clearTimeout(statusTimer);
-  if (kind === 'ok') statusTimer = setTimeout(hideStatus, OK_NOTE_MS);
-  box.className = `status ${kind}`.trim();
-  const text = document.createElement('span');
-  text.textContent = message;
-  box.replaceChildren(text);
-  if (actions.length) {
-    const choice = document.createElement('span');
-    choice.className = 'choice';
-    for (const action of actions) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = action.primary ? 'btn primary' : 'btn';
-      button.textContent = action.label;
-      button.addEventListener('click', () => {
-        hideStatus();
-        action.onClick();
-      });
-      choice.append(button);
-    }
-    box.append(choice);
-  }
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'close';
-  close.setAttribute('aria-label', 'Dismiss');
-  close.textContent = '×';
-  close.addEventListener('click', hideStatus);
-  box.append(close);
-  box.hidden = false;
-}
-
-function hideStatus() {
-  clearTimeout(statusTimer);
-  $('status').hidden = true;
-}
+// Success notes clear themselves; errors and questions stay until dismissed or the next action.
+const notice = createNotice($('status'), { okMs: 4000 });
+const showStatus = notice.show;
+const hideStatus = notice.hide;
 
 // ---------- songs, weights, saving ----------
 

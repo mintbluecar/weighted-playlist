@@ -1,20 +1,7 @@
 // The "Manage playlists" modal over the player. It shows the list's playlists and added songs,
 // and changes them through the player's own actions, so the song that's playing keeps playing.
 import { parseLink, isMix } from './links.js';
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
-
-function button(label, className, ariaLabel) {
-  const b = el('button', className, label);
-  b.type = 'button';
-  if (ariaLabel) b.setAttribute('aria-label', ariaLabel);
-  return b;
-}
+import { el, button, thumb, createNotice } from './dom.js';
 
 // actions:
 //   getData() → { sources: [{ id, title, owner, count, status, syncing }], extras: [{ id, title, author, thumbnail }] }
@@ -26,29 +13,9 @@ function button(label, className, ariaLabel) {
 export function setupManage(dialog, actions) {
   const $ = id => dialog.querySelector(`#${id}`);
 
-  // ---------- notes inside the modal (success notes clear after 4 s, like the player's) ----------
-  let noteTimer = null;
-  function note(message, kind = 'ok', action = null) {
-    const box = $('mStatus');
-    clearTimeout(noteTimer);
-    if (kind === 'ok') noteTimer = setTimeout(() => { box.hidden = true; }, 4000);
-    box.className = `status ${kind}`.trim();
-    box.replaceChildren(el('span', null, message));
-    if (action) {
-      const wrap = el('span', 'choice');
-      const b = button(action.label, 'btn');
-      b.addEventListener('click', () => {
-        box.hidden = true;
-        action.onClick();
-      });
-      wrap.append(b);
-      box.append(wrap);
-    }
-    const close = button('×', 'close', 'Dismiss');
-    close.addEventListener('click', () => { box.hidden = true; });
-    box.append(close);
-    box.hidden = false;
-  }
+  // Notes inside the modal behave like the player's: success notes clear after 4 s.
+  const notice = createNotice($('mStatus'), { okMs: 4000 });
+  const note = (message, kind = 'ok', action = null) => notice.show(message, kind, action ? [action] : []);
 
   // ---------- cards ----------
   function sourceCard(source) {
@@ -80,21 +47,13 @@ export function setupManage(dialog, actions) {
     const title = song.title ?? song.id;
     const li = el('li', 'source');
     li.dataset.id = song.id;
-    const thumb = el('span', 'thumb');
-    if (song.thumbnail) {
-      const img = el('img');
-      img.alt = '';
-      img.loading = 'lazy';
-      img.src = song.thumbnail;
-      thumb.append(img);
-    }
     const text = el('div', 'text');
     text.append(el('span', 't', title));
     if (song.author) text.append(el('span', 'c', song.author));
     const remove = button('Remove', 'btn', `Remove ${title}`);
     remove.dataset.action = 'remove';
     remove.addEventListener('click', () => removeExtra(song.id, title));
-    li.append(thumb, text, remove);
+    li.append(thumb(song.thumbnail), text, remove);
     return li;
   }
 

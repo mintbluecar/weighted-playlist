@@ -1,11 +1,6 @@
 // The "Up next" box: the next plays, a divider where the next loop starts,
 // ▲▼ to reorder within a loop, and tap a song to play it now (the songs it passed stay queued).
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
+import { el, thumb } from './dom.js';
 
 export function setupQueue(listEl, { onPlay, onMove }) {
   listEl.addEventListener('click', e => {
@@ -38,17 +33,9 @@ export function renderQueue(listEl, items) {
     const play = el('button', 'qplay');
     play.type = 'button';
     play.setAttribute('aria-label', `Play ${item.title} now`);
-    const thumb = el('span', 'thumb');
-    if (item.thumbnail) {
-      const img = el('img');
-      img.alt = '';
-      img.loading = 'lazy';
-      img.src = item.thumbnail;
-      thumb.append(img);
-    }
     const text = el('span', 'text');
     text.append(el('span', 't', item.title), el('span', 'c', item.author));
-    play.append(el('span', 'qnum', String(item.number)), thumb, text);
+    play.append(el('span', 'qnum', String(item.number)), thumb(item.thumbnail), text);
 
     const move = el('span', 'qmove');
     for (const [dir, label, glyph, enabled] of [[-1, 'Move up', '▲', item.canUp], [1, 'Move down', '▼', item.canDown]]) {

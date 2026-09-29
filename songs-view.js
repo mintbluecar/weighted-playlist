@@ -1,13 +1,7 @@
 // Draws the song list. Rows are keyed by video ID and updated in place,
 // so typing in a weight box keeps its focus while the list re-renders.
 import { MAX_WEIGHT, MIN_WEIGHT } from './weights.js';
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
+import { el } from './dom.js';
 
 export function setupSongList(listEl, { onPlayNow, onWeight, onRemove, onQueue }) {
   listEl.addEventListener('click', e => {
