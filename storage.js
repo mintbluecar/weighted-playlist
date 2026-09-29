@@ -6,6 +6,14 @@ export const MINE = 'mine';
 const SETTINGS_KEY = 'hr:settings';
 const END_MODES = ['shuffle', 'stop'];
 const ROTATION_KEY = 'hr:rotation';
+const TITLES_KEY = 'hr:titles';
+const TITLES_KEPT = 2000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Songs whose title isn't remembered, or was looked up more than a day ago.
+export function titlesToLookUp(ids, cache, now = Date.now()) {
+  return ids.filter(id => !cache[id] || now - cache[id].at > DAY_MS);
+}
 const strings = list => (Array.isArray(list) ? list.filter(x => typeof x === 'string') : []);
 
 export const playlistKey = id => `hr:playlist:${id}`;
@@ -118,6 +126,27 @@ export function createStore(backend) {
         removed: strings(data.removed),
         sourceInfo,
       };
+    },
+
+    // Song titles, channels and thumbnails from earlier lookups, so the list shows names straight away.
+    loadTitles() {
+      const data = read(TITLES_KEY);
+      const titles = {};
+      for (const [id, t] of Object.entries(data)) {
+        if (!isObject(t) || typeof t.title !== 'string') continue;
+        titles[id] = {
+          title: t.title,
+          author: typeof t.author === 'string' ? t.author : '',
+          thumbnail: typeof t.thumbnail === 'string' && t.thumbnail.startsWith('https://') ? t.thumbnail : '',
+          at: Number.isFinite(t.at) ? t.at : 0,
+        };
+      }
+      return titles;
+    },
+
+    saveTitles(titles) {
+      const newest = Object.entries(titles).sort((a, b) => b[1].at - a[1].at).slice(0, TITLES_KEPT);
+      return write(TITLES_KEY, Object.fromEntries(newest));
     },
 
     saveRotation(rotation) {

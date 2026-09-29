@@ -18,7 +18,7 @@ export async function fetchInfo(url, fetchImpl = globalThis.fetch) {
   }
 }
 
-export async function fetchVideoInfos(ids, { concurrency = 4, fetchImpl, onInfo } = {}) {
+export async function fetchVideoInfos(ids, { concurrency = 8, fetchImpl, onInfo } = {}) {
   const waiting = [...ids];
   const results = new Map();
   async function worker() {

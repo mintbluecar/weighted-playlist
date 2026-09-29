@@ -261,6 +261,7 @@ A wide, low strip across the top of the page, above the player and the song list
 ```
 
 - Weights of 1 are not stored. Weights are never dropped (so they come back when a playlist or song returns).
+- `hr:titles` remembers each song's title, channel, thumbnail and lookup time (newest 2,000 kept). Remembered titles show straight away on the player and the manage page; a title is looked up again only if it isn't remembered or is over a day old. Lookups run 8 at a time. (Measured on localhost: a playlist read took 0.25 s, while 9 title lookups took 2.5 s, so titles were what made startup feel slow.)
 - `sourceInfo` is written by the player page each time it reads the playlists (`status`: `ok` or `error`). The manage page also writes a new playlist's title and owner when it adds one, so the card shows its name straight away.
 - **Migration:** on first load without `hr:rotation`, the old `hr:settings.lastSource` and its `hr:playlist:<id>` (or `hr:playlist:mine`) entry become the rotation, so no weights are lost. Old keys are left in place.
 - Every read and write is wrapped in `try/catch`. If storage is unavailable, everything still works for the session and a small note says weights won't be remembered.

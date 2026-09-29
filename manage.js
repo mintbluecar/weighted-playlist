@@ -1,6 +1,6 @@
 // Manage playlists: shows the rotation the player last saved, and edits which playlists
 // and added songs are in it. It needs no YouTube player; the player re-reads on its next load.
-import { createStore } from './storage.js';
+import { createStore, titlesToLookUp } from './storage.js';
 import { parseLink, isMix } from './links.js';
 import { fetchInfo, fetchVideoInfos, playlistUrl } from './youtube.js';
 
@@ -14,7 +14,7 @@ try {
 }
 const store = createStore(backend);
 let rotation = store.loadRotation();
-const extraInfo = new Map(); // videoId -> { title, author, thumbnail }
+const titleCache = store.loadTitles(); // shared with the player: videoId -> { title, author, thumbnail, at }
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -77,7 +77,7 @@ function sourceCard(id) {
 }
 
 function extraRow(id) {
-  const info = extraInfo.get(id);
+  const info = titleCache[id];
   const title = info?.title ?? id;
   const li = el('li', 'source');
   const thumb = el('span', 'thumb');
@@ -131,7 +131,7 @@ function removeExtra(id) {
   rotation.extras.splice(index, 1);
   save();
   render();
-  note(`Removed ${extraInfo.get(id)?.title ?? 'the song'}.`, 'ok', {
+  note(`Removed ${titleCache[id]?.title ?? 'the song'}.`, 'ok', {
     label: 'Undo',
     onClick: () => {
       if (!rotation.extras.includes(id)) rotation.extras.splice(index, 0, id);
@@ -191,9 +191,10 @@ window.addEventListener('storage', e => {
 });
 
 render();
-fetchVideoInfos(rotation.extras, {
+// Look up only titles that aren't remembered (or are over a day old), and remember them.
+fetchVideoInfos(titlesToLookUp(rotation.extras, titleCache), {
   onInfo: (id, info) => {
-    if (info) extraInfo.set(id, info);
+    if (info) titleCache[id] = { ...info, at: Date.now() };
     render();
   },
-});
+}).then(() => store.saveTitles(titleCache));

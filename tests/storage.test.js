@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, playlistKey, MINE } from '../storage.js';
+import { createStore, playlistKey, MINE, titlesToLookUp, DAY_MS } from '../storage.js';
 
 function memoryBackend() {
   const data = new Map();
@@ -121,4 +121,35 @@ test('a corrupt rotation is cleaned up on load', () => {
     sources: ['PL1', 'PL2'], weights: { a: 1, b: 99 }, extras: [], removed: ['r'],
     sourceInfo: { PL1: { owner: 'Me' } },
   });
+});
+
+test('titles are remembered with the time they were looked up', () => {
+  const backend = memoryBackend();
+  const store = createStore(backend);
+  assert.deepEqual(store.loadTitles(), {});
+  store.saveTitles({ a: { title: 'Song A', author: 'Mara', thumbnail: 'https://i.ytimg.com/vi/a/hqdefault.jpg', at: 1000 } });
+  assert.deepEqual(store.loadTitles(), { a: { title: 'Song A', author: 'Mara', thumbnail: 'https://i.ytimg.com/vi/a/hqdefault.jpg', at: 1000 } });
+});
+
+test('bad remembered titles are dropped on load', () => {
+  const backend = memoryBackend();
+  backend.setItem('hr:titles', JSON.stringify({ a: { title: 5 }, b: 'x', c: { title: 'C', author: 7, thumbnail: 'javascript:x', at: 'y' } }));
+  assert.deepEqual(createStore(backend).loadTitles(), { c: { title: 'C', author: '', thumbnail: '', at: 0 } });
+});
+
+test('only the newest 2000 titles are kept', () => {
+  const backend = memoryBackend();
+  const store = createStore(backend);
+  const many = {};
+  for (let i = 0; i < 2100; i++) many[`v${i}`] = { title: `T${i}`, author: '', thumbnail: '', at: i };
+  store.saveTitles(many);
+  const kept = store.loadTitles();
+  assert.equal(Object.keys(kept).length, 2000);
+  assert.ok(kept.v2099 && !kept.v0);
+});
+
+test('titlesToLookUp picks songs with no title or one older than a day', () => {
+  const now = 10 * DAY_MS;
+  const cache = { fresh: { title: 'F', at: now - 1000 }, old: { title: 'O', at: now - DAY_MS - 1 } };
+  assert.deepEqual(titlesToLookUp(['fresh', 'old', 'missing'], cache, now), ['old', 'missing']);
 });

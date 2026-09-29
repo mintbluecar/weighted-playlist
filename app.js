@@ -2,7 +2,7 @@
 import { parseLink, isMix } from './links.js';
 import { clampWeight, playsPerLoop, frequencyText, compareSongs } from './weights.js';
 import { Queue } from './rotation.js';
-import { createStore } from './storage.js';
+import { createStore, titlesToLookUp } from './storage.js';
 import { listHeading } from './sources.js';
 import { loadYouTubeApi, createPlayer, fetchInfo, fetchVideoInfos, playlistUrl, videoUrl, STATE } from './youtube.js';
 import { setupSongList, renderSongs, flashRow } from './songs-view.js';
@@ -22,6 +22,7 @@ try {
 const store = createStore(backend);
 const settings = store.loadSettings();
 let rotation = store.loadRotation();
+const titleCache = store.loadTitles(); // videoId -> { title, author, thumbnail, at }
 
 const state = {
   sourceSongs: new Map(),       // playlist ID -> its video IDs, as read this session
@@ -133,8 +134,25 @@ function save() {
   store.saveSettings(settings);
 }
 
+// A new song object, named from remembered titles when we have them.
+function newSong(id, weight, extra) {
+  const known = titleCache[id];
+  return { id, title: known?.title ?? null, author: known?.author ?? '', thumbnail: known?.thumbnail ?? '', weight, extra, blocked: false };
+}
+
+// Store a looked-up title on the song and remember it for next time.
+function rememberTitle(id, info) {
+  titleCache[id] = { ...info, at: Date.now() };
+  const song = state.songs.get(id) ?? state.removedInfo.get(id);
+  if (song) {
+    song.title = info.title;
+    song.author = info.author;
+    song.thumbnail = info.thumbnail;
+  }
+}
+
 function addSong(id, weight, extra) {
-  state.songs.set(id, { id, title: null, author: '', thumbnail: '', weight, extra, blocked: false });
+  state.songs.set(id, newSong(id, weight, extra));
 }
 
 function setWeight(id, value) {
@@ -234,7 +252,7 @@ function rebuildSongs() {
       songs.set(id, song);
       state.removedInfo.delete(id);
     } else {
-      songs.set(id, { id, title: null, author: '', thumbnail: '', weight: rotation.weights[id] ?? 1, extra: extras.has(id), blocked: false });
+      songs.set(id, newSong(id, rotation.weights[id] ?? 1, extras.has(id)));
       newIds.push(id);
     }
   }
@@ -248,18 +266,17 @@ function rebuildSongs() {
   if (newIds.length) loadTitles(newIds);
 }
 
+// Look up titles that aren't remembered, or were looked up more than a day ago.
 function loadTitles(ids) {
-  fetchVideoInfos(ids, {
+  const lookup = titlesToLookUp(ids, titleCache);
+  if (!lookup.length) return;
+  fetchVideoInfos(lookup, {
     onInfo: (id, info) => {
-      const song = state.songs.get(id);
-      if (song && info) {
-        song.title = info.title;
-        song.author = info.author;
-        song.thumbnail = info.thumbnail;
-      }
+      if (info) rememberTitle(id, info);
       scheduleRender();
     },
   }).then(() => {
+    store.saveTitles(titleCache);
     resort();
     render();
   });
@@ -321,15 +338,13 @@ async function addVideo(videoId) {
   save();
   render();
   showStatus('Added to your list, weight 1.', 'ok');
+  if (!titlesToLookUp([videoId], titleCache).length) return;
   const info = await fetchInfo(videoUrl(videoId));
-  const song = state.songs.get(videoId);
-  if (song && info) {
-    song.title = info.title;
-    song.author = info.author;
-    song.thumbnail = info.thumbnail;
-    resort();
-    render();
-  }
+  if (!info) return;
+  rememberTitle(videoId, info);
+  store.saveTitles(titleCache);
+  resort();
+  render();
 }
 
 // ---------- playback ----------

@@ -13,7 +13,7 @@ const realFetch = window.fetch.bind(window);
 // ---- fake YouTube IFrame API ----
 const playlists = { [A]: [A1, A2], [B]: [B1], [C]: CS };
 const cueDelay = { [A]: 20, [B]: 20, [C]: 20 };
-const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0, cuePlaylist: {} };
+const calls = { loadVideoById: [], cueVideoById: [], playVideo: 0, cuePlaylist: {}, oembed: [] };
 let readyDelay = 0; // scenarios can delay the fake players becoming ready
 window.YT = {
   Player: class {
@@ -43,6 +43,7 @@ window.YT = {
 // oEmbed stand-in: title is "Title <id>"
 window.fetch = async url => {
   const id = decodeURIComponent(url).match(/(?:v=|list=)([A-Za-z0-9_-]+)/)?.[1] ?? '?';
+  calls.oembed.push(id);
   return { ok: true, json: async () => ({ title: `Title ${id}`, author_name: 'Someone', thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` }) };
 };
 
@@ -442,6 +443,33 @@ const scenarios = {
     window.dispatchEvent(new StorageEvent('storage', { key: 'hr:rotation' }));
     await wait(500);
     return { pass: before === 1 && calls.cuePlaylist.PLXXXX === 1, before, after: calls.cuePlaylist.PLXXXX };
+  },
+
+  // Remembered titles show straight away; fresh ones aren't looked up again; stale ones are.
+  async 'titles-remembered'() {
+    localStorage.setItem('hr:titles', JSON.stringify({
+      [A1]: { title: 'Remembered A1', author: 'Mara', thumbnail: '', at: Date.now() },
+      [A2]: { title: 'Old A2', author: '', thumbnail: '', at: 0 },
+    }));
+    await import('/app.js');
+    await wait(800);
+    const titleOf = id => document.querySelector(`.song[data-id="${id}"] .t`)?.textContent;
+    const stored = JSON.parse(localStorage.getItem('hr:titles'));
+    return {
+      pass: titleOf(A1) === 'Remembered A1' && !calls.oembed.includes(A1) && calls.oembed.includes(A2)
+        && titleOf(A2) === `Title ${A2}` && stored[A2].title === `Title ${A2}` && stored[A2].at > 0,
+      a1: titleOf(A1), a2: titleOf(A2), lookups: calls.oembed,
+    };
+  },
+
+  // Manage page: added songs show remembered titles without looking them up again.
+  async 'manage-remembered-titles'() {
+    localStorage.setItem('hr:rotation', JSON.stringify({ sources: [], weights: {}, extras: [B1], removed: [], sourceInfo: {} }));
+    localStorage.setItem('hr:titles', JSON.stringify({ [B1]: { title: 'Remembered B1', author: 'Mara', thumbnail: '', at: Date.now() } }));
+    await import('/manage.js');
+    await wait(300);
+    const text = document.querySelector('#extras .source .t')?.textContent;
+    return { pass: text === 'Remembered B1' && !calls.oembed.includes(B1), text, lookups: calls.oembed };
   },
 
   // Any message can be closed with its × button.
