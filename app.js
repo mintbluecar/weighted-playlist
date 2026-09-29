@@ -116,6 +116,17 @@ function rememberTitle(id, info) {
   }
 }
 
+// Every change to the song list ends here: recount the loop (the playing song keeps playing and
+// only the rest of the loop is rebuilt), optionally wait paused on a song if none is ready,
+// re-sort (setWeight delays that), save and redraw.
+function listChanged({ cue = false, sort = true } = {}) {
+  updateCounts();
+  if (cue && !queue.current) cueFirstSong();
+  if (sort) resort();
+  save();
+  render();
+}
+
 function addSong(id, weight, extra) {
   state.songs.set(id, newSong(id, weight, extra));
 }
@@ -124,9 +135,7 @@ function setWeight(id, value) {
   const song = state.songs.get(id);
   if (!song) return;
   song.weight = clampWeight(value);
-  updateCounts();
-  save();
-  render();
+  listChanged({ sort: false });
   // Re-sort about a second after the last change, so rows don't jump while tapping.
   clearTimeout(resortTimer);
   resortTimer = setTimeout(() => {
@@ -143,10 +152,7 @@ function removeSong(id, { quiet = false } = {}) {
   state.songs.delete(id);
   state.removedInfo.set(id, song);
   if (state.playlistIds.has(id)) state.removed.add(id);
-  updateCounts(); // a playing song finishes; the loop carries on without it
-  resort();
-  save();
-  render();
+  listChanged(); // a playing song finishes; the loop carries on without it
   if (!quiet) showStatus(`Removed ${song.title ?? id}. Still on YouTube.`, 'ok', [{ label: 'Undo', onClick: () => restoreSong(id) }]);
 }
 
@@ -157,10 +163,7 @@ function restoreSong(id) {
   state.removed.delete(id);
   song.extra = !state.playlistIds.has(id);
   state.songs.set(id, song);
-  updateCounts();
-  resort();
-  save();
-  render();
+  listChanged();
 }
 
 // ---------- loading ----------
@@ -228,11 +231,7 @@ function rebuildSongs() {
   }
   for (const [id, song] of state.songs) if (!songs.has(id)) state.removedInfo.set(id, song);
   state.songs = songs;
-  updateCounts(); // a playing song that left finishes; the loop carries on without it
-  if (!queue.current) cueFirstSong();
-  resort();
-  save();
-  render();
+  listChanged({ cue: true }); // a playing song that left finishes; the loop carries on without it
   if (newIds.length) loadTitles(newIds);
   if (!crew.members.size) crewView.showVisitors([...state.songs.keys()]); // an empty pen gets visitors
   return newIds;
@@ -399,11 +398,7 @@ async function addVideo(videoId) {
   const inPlaylist = state.playlistIds.has(videoId);
   if (!inPlaylist) rotation.extras = [...rotation.extras, videoId];
   addSong(videoId, rotation.weights[videoId] ?? 1, !inPlaylist);
-  updateCounts();
-  if (!queue.current) cueFirstSong();
-  resort();
-  save();
-  render();
+  listChanged({ cue: true });
   showStatus('Added to your list, weight 1.', 'ok');
   if (!titlesToLookUp([videoId], titleCache).length) return;
   const info = await fetchInfo(videoUrl(videoId));
