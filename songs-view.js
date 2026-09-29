@@ -2,8 +2,6 @@
 // so typing in a weight box keeps its focus while the list re-renders.
 import { MAX_WEIGHT, MIN_WEIGHT } from './weights.js';
 
-const QUEUE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h13M3 12h13M3 18h8M18 14v8M14 18h8"/></svg>';
-
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -18,10 +16,13 @@ export function setupSongList(listEl, { onPlayNow, onWeight, onRemove, onQueue }
     if (!row) return;
     const id = row.dataset.id;
     const input = row.querySelector('input');
-    if (button.dataset.role === 'inc') onWeight(id, Number(input.value) + 1);
-    else if (button.dataset.role === 'dec') onWeight(id, Number(input.value) - 1);
-    else if (button.dataset.role === 'remove') onRemove(id);
-    else if (button.dataset.role === 'queue') onQueue(id);
+    const role = button.dataset.role;
+    if (role === 'menu') return toggleMenu(listEl, row);
+    if (role === 'queue' || role === 'remove') closeMenus(listEl);
+    if (role === 'inc') onWeight(id, Number(input.value) + 1);
+    else if (role === 'dec') onWeight(id, Number(input.value) - 1);
+    else if (role === 'remove') onRemove(id);
+    else if (role === 'queue') onQueue(id);
     else if (button.dataset.role === 'name' && !row.classList.contains('blocked')) onPlayNow(id);
   });
   listEl.addEventListener('change', e => {
@@ -29,6 +30,34 @@ export function setupSongList(listEl, { onPlayNow, onWeight, onRemove, onQueue }
     e.target.dataset.committed = '1'; // show the stored (clamped) value even while focused
     onWeight(e.target.closest('.song').dataset.id, e.target.value);
   });
+  // Close the ⋯ menu when clicking elsewhere, or on Escape (focus goes back to its button).
+  document.addEventListener('click', e => {
+    if (!e.target.closest?.('.song .more-wrap')) closeMenus(listEl);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const open = listEl.querySelector('.menu:not([hidden])');
+    if (!open) return;
+    closeMenus(listEl);
+    open.closest('.more-wrap').querySelector('[data-role="menu"]').focus();
+  });
+}
+
+function closeMenus(listEl) {
+  for (const menu of listEl.querySelectorAll('.menu:not([hidden])')) {
+    menu.hidden = true;
+    menu.closest('.more-wrap').querySelector('[data-role="menu"]').setAttribute('aria-expanded', 'false');
+  }
+}
+
+function toggleMenu(listEl, row) {
+  const menu = row.querySelector('.menu');
+  const opening = menu.hidden;
+  closeMenus(listEl);
+  if (!opening) return;
+  menu.hidden = false;
+  row.querySelector('[data-role="menu"]').setAttribute('aria-expanded', 'true');
+  menu.querySelector('button:not(:disabled)')?.focus();
 }
 
 function createRow(id) {
@@ -57,15 +86,24 @@ function createRow(id) {
   inc.dataset.role = 'inc';
   inc.setAttribute('aria-label', 'Raise weight');
   stepper.append(dec, input, inc);
-  const queue = el('button', 'queue-add');
-  queue.type = 'button';
-  queue.dataset.role = 'queue';
-  queue.dataset.tip = 'Add to queue';
-  queue.innerHTML = QUEUE_ICON; // static markup, no song data
-  const remove = el('button', 'remove', '×');
-  remove.type = 'button';
-  remove.dataset.role = 'remove';
-  li.append(name, stepper, queue, remove, el('div', 'stats'));
+  const wrap = el('div', 'more-wrap');
+  const more = el('button', 'more', '⋯');
+  more.type = 'button';
+  more.dataset.role = 'menu';
+  more.setAttribute('aria-haspopup', 'menu');
+  more.setAttribute('aria-expanded', 'false');
+  const menu = el('div', 'menu');
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  for (const [role, label] of [['queue', 'Add to queue'], ['remove', 'Remove from playlist']]) {
+    const item = el('button', null, label);
+    item.type = 'button';
+    item.dataset.role = role;
+    item.setAttribute('role', 'menuitem');
+    menu.append(item);
+  }
+  wrap.append(more, menu);
+  li.append(name, stepper, wrap, el('div', 'stats'));
   return li;
 }
 
@@ -93,9 +131,8 @@ export function renderSongs(listEl, rows) {
     li.querySelector('.name .c').textContent = row.author;
     setThumbnail(li.querySelector('.thumb'), row.thumbnail);
     li.querySelector('.name').setAttribute('aria-label', `Play ${row.title} now`);
-    li.querySelector('.remove').setAttribute('aria-label', `Remove ${row.title}`);
-    li.querySelector('.queue-add').setAttribute('aria-label', `Add ${row.title} to queue`);
-    li.querySelector('.queue-add').disabled = row.blocked;
+    li.querySelector('.more').setAttribute('aria-label', `More options for ${row.title}`);
+    li.querySelector('[data-role="queue"]').disabled = row.blocked;
     const input = li.querySelector('input');
     if (document.activeElement !== input || input.dataset.committed) {
       input.value = String(row.weight);

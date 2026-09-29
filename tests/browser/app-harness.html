@@ -137,7 +137,9 @@ const scenarios = {
   async 'remove-song'() {
     await import('/app.js');
     await wait(800);
-    document.querySelector(`.song[data-id="${A2}"] [data-role="remove"]`)?.click();
+    const menuHiddenAtFirst = document.querySelector(`.song[data-id="${A2}"] .menu`)?.hidden === true;
+    document.querySelector(`.song[data-id="${A2}"] [data-role="menu"]`).click();
+    document.querySelector(`.song[data-id="${A2}"] [data-role="remove"]`).click();
     await wait(100);
     const goneFromList = !document.querySelector(`.song[data-id="${A2}"]`);
     const savedRemoved = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
@@ -148,7 +150,7 @@ const scenarios = {
     const back = !!document.querySelector(`.song[data-id="${A2}"]`);
     const removedAfterUndo = JSON.parse(localStorage.getItem(`hr:playlist:${A}`)).removed;
     return {
-      pass: goneFromList && savedRemoved.includes(A2) && note.startsWith(`Removed Title ${A2}.`) && back && removedAfterUndo.length === 0,
+      pass: menuHiddenAtFirst && goneFromList && savedRemoved.includes(A2) && note.startsWith(`Removed Title ${A2}.`) && back && removedAfterUndo.length === 0,
       goneFromList, savedRemoved, note, back, removedAfterUndo,
     };
   },
@@ -216,10 +218,14 @@ const scenarios = {
   async 'add-to-queue'() {
     await import('/app.js');
     await wait(800);
-    document.querySelector(`.song[data-id="${A2}"] [data-role="queue"]`).click();
+    const row = document.querySelector(`.song[data-id="${A2}"]`);
+    row.querySelector('[data-role="menu"]').click();
+    const menuOpened = !row.querySelector('.menu').hidden;
+    row.querySelector('[data-role="queue"]').click();
     await wait(100);
+    const menuClosed = row.querySelector('.menu').hidden;
     const top = document.querySelector('#queueList .qitem')?.dataset.id;
-    return { pass: top === A2 && $('status').textContent.startsWith(`Added Title ${A2} to the queue.`), top, note: $('status').textContent };
+    return { pass: menuOpened && menuClosed && top === A2 && $('status').textContent.startsWith(`Added Title ${A2} to the queue.`), menuOpened, menuClosed, top, note: $('status').textContent };
   },
 
   // The pen's header collapses and expands it, and the choice is remembered.

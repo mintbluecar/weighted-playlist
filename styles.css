@@ -90,7 +90,7 @@ form.load{display:flex;gap:8px;width:100%;max-width:640px}
 .infotip{position:absolute;right:0;top:calc(100% + 8px);width:max-content;max-width:220px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:500;line-height:1.35;padding:7px 10px;border-radius:7px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s;z-index:10}
 .info:hover+.infotip,.info:focus-visible+.infotip,.info[aria-expanded="true"]+.infotip{opacity:1;transform:none}
 ol.songs{list-style:none;margin:0;padding:0}
-.song{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
+.song{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);transition:background .3s}
 .song:last-child{border-bottom:0}
 .song.current{background:var(--accent-soft)}
 .song:not(.blocked):hover{background:var(--surface-2)}
@@ -99,8 +99,6 @@ ol.songs{list-style:none;margin:0;padding:0}
 .song .thumb{position:relative}
 .song .thumb::after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:#fff;background:rgba(0,0,0,.4);opacity:0;transition:opacity .15s}
 .song:not(.blocked) .name:hover .thumb::after,.song:not(.blocked) .name:focus-visible .thumb::after{opacity:1}
-.song .remove{width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-3);font-size:20px;line-height:1}
-.song .remove:hover,.song .remove:focus-visible{color:var(--warn);background:var(--warn-soft)}
 .song .name{border:0;background:none;padding:0;text-align:left;min-width:0;display:flex;align-items:center;gap:10px}
 .song .name .text{min-width:0}
 .song .thumb{flex:none;width:64px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
@@ -126,13 +124,14 @@ form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)
 .moved{animation:flash .9s ease-out}
 @keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
 
-.song .queue-add{position:relative;width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-3);display:grid;place-items:center}
-.song .queue-add svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.song .queue-add:hover:not(:disabled),.song .queue-add:focus-visible{color:var(--accent);background:var(--accent-soft)}
-.song .queue-add:disabled{opacity:.35;cursor:default}
-.song .queue-add::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);right:0;background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.3;padding:5px 8px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:10}
-.song .queue-add:hover:not(:disabled)::after,.song .queue-add:focus-visible::after{opacity:1;transform:none}
-@media (hover:none){.song .queue-add:hover::after{opacity:0}}
+.song .more-wrap{position:relative}
+.song .more{width:34px;height:34px;border:0;border-radius:8px;background:none;color:var(--ink-2);font-size:20px;line-height:1}
+.song .more:hover,.song .more:focus-visible,.song .more[aria-expanded="true"]{background:var(--surface-2);color:var(--ink)}
+.song .menu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:190px;display:grid;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.song .menu button{border:0;background:none;text-align:left;padding:9px 12px;border-radius:7px;font-size:14px;color:var(--ink)}
+.song .menu button:hover:not(:disabled),.song .menu button:focus-visible{background:var(--surface-2)}
+.song .menu button:disabled{color:var(--ink-3);cursor:default}
+.song .menu [data-role="remove"]{color:var(--warn)}
 
 /* up next */
 .queue{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
@@ -150,9 +149,10 @@ form.add{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line)
 .qitem .text{min-width:0}
 .qitem .t{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qitem .c{display:block;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qmove{display:flex;flex-direction:column;gap:2px;flex:none}
-.qmove button{width:28px;height:20px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);font-size:9px;line-height:1;color:var(--ink-2)}
-.qmove button:hover:not(:disabled){color:var(--accent);border-color:var(--accent)}
+.qmove{display:flex;flex-direction:column;flex:none;border-radius:8px;overflow:hidden;background:var(--surface-2)}
+.qmove button{width:28px;height:19px;padding:0;border:0;border-radius:0;background:none;font-size:9px;line-height:1;color:var(--ink-2)}
+.qmove button + button{border-top:1px solid var(--line)}
+.qmove button:hover:not(:disabled){color:var(--accent);background:var(--accent-soft)}
 .qmove button:disabled{opacity:.3;cursor:default}
 .qdivider{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .qdivider::before,.qdivider::after{content:"";flex:1;border-top:1px dashed var(--line)}
