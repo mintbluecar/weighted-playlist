@@ -275,9 +275,9 @@ function rebuildSongs() {
   return newIds;
 }
 
-// Look up titles that aren't remembered, or were looked up more than a day ago.
-function loadTitles(ids) {
-  const lookup = titlesToLookUp(ids, titleCache);
+// Look up titles that aren't remembered, or were looked up more than a day ago (all of them with force).
+function loadTitles(ids, { force = false } = {}) {
+  const lookup = force ? ids : titlesToLookUp(ids, titleCache);
   if (!lookup.length) return;
   fetchVideoInfos(lookup, {
     onInfo: (id, info) => {
@@ -288,7 +288,7 @@ function loadTitles(ids) {
     store.saveTitles(titleCache);
     resort();
     render();
-  });
+  }).catch(() => {}); // lookups never throw (fetchInfo returns null); this guards the saving and drawing
 }
 
 function failedMessage(listIds) {
@@ -396,9 +396,8 @@ async function syncSource(listId) {
   }
   const ids = new Set(state.sourceSongs.get(listId));
   rotation.removed = rotation.removed.filter(id => !ids.has(id));
-  for (const id of ids) if (titleCache[id]) titleCache[id] = { ...titleCache[id], at: 0 };
   const fresh = new Set(rebuildSongs()); // songs new to the list are looked up by the rebuild
-  loadTitles([...ids].filter(id => !fresh.has(id)));
+  loadTitles([...ids].filter(id => !fresh.has(id)), { force: true });
   await refreshSourceTitle(listId);
   return { ok: true, message: `Synced ${title()}.` };
 }
@@ -718,6 +717,6 @@ async function boot() {
     showStatus("The YouTube player couldn't load. Check your connection or ad blocker.", 'err');
     return;
   }
-  loadRotation(); // shows its own loading line while it reads
+  loadRotation().catch(() => showStatus("Your playlists couldn't be loaded. Try reloading the page.", 'err'));
   if (waitingForPlayer) setLoading(-1);
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchInfo, fetchVideoInfos, videoUrl, playlistUrl } from '../youtube.js';
+import { fetchInfo, fetchVideoInfos, videoUrl, playlistUrl, createPlayer } from '../youtube.js';
 
 const ok = body => ({ ok: true, json: async () => body });
 
@@ -46,4 +46,10 @@ test('fetchVideoInfos fetches every id, reports each, and limits requests in fli
 test('fetchInfo only passes through https thumbnails', async () => {
   const info = await fetchInfo('x', async () => ok({ title: 'T', author_name: 'A', thumbnail_url: 'javascript:alert(1)' }));
   assert.equal(info.thumbnail, '');
+});
+
+test('createPlayer gives up if the player never becomes ready', async () => {
+  globalThis.location ??= { origin: 'http://localhost' };
+  const NeverReady = { Player: class { constructor() {} } };
+  await assert.rejects(createPlayer(NeverReady, 'x', { timeoutMs: 30 }), /player-not-ready/);
 });

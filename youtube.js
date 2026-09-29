@@ -60,15 +60,20 @@ export function loadYouTubeApi({ timeoutMs = 15000 } = {}) {
 }
 
 // `element` is an element or its ID; YouTube replaces it with the player's iframe.
-export function createPlayer(YT, element, { onStateChange, onError } = {}) {
+export function createPlayer(YT, element, { onStateChange, onError, timeoutMs = 15000 } = {}) {
   let cuedAt = 0;
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
+    // Give up if YouTube never says the player is ready, so nothing waiting on it hangs forever.
+    const timer = setTimeout(() => reject(new Error('player-not-ready')), timeoutMs);
     const yt = new YT.Player(element, {
       width: '100%',
       height: '100%',
       playerVars: { playsinline: 1, rel: 0, origin: location.origin },
       events: {
-        onReady: () => resolve(wrapPlayer(yt, () => cuedAt)),
+        onReady: () => {
+          clearTimeout(timer);
+          resolve(wrapPlayer(yt, () => cuedAt));
+        },
         onStateChange: e => {
           if (e.data === STATE.CUED) cuedAt = Date.now();
           onStateChange?.(e.data);
@@ -120,11 +125,13 @@ export async function createReader(YT, container) {
   await fresh();
   return {
     async listPlaylist(listId) {
+      if (!player) await fresh(); // the last replacement didn't start; try again
       try {
         return await player.listPlaylist(listId);
       } catch (err) {
         player.destroy();
-        await fresh();
+        player = null;
+        await fresh().catch(() => {}); // if this fails too, the next read tries again
         throw err;
       }
     },
